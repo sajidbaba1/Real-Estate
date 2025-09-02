@@ -16,13 +16,32 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick }) => {
   const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
-    // Reset favorite state when authentication changes
+    // Reset favorite state
     setIsFavorited(false);
     
-    // Only check favorite status if user is fully authenticated
-    if (isAuthenticated && user && !loading) {
-      checkFavoriteStatus();
+    // Temporarily disable favorite checking to eliminate 403 errors
+    // TODO: Re-enable once authentication is properly working
+    return;
+    
+    // Debug authentication state
+    console.log('PropertyCard Auth State:', { isAuthenticated, user: !!user, loading });
+    
+    // Early return if not authenticated - don't make any API calls
+    if (!isAuthenticated || !user || loading) {
+      console.log('Skipping favorite check - not authenticated');
+      return;
     }
+    
+    // Check if token exists before making API call
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('Skipping favorite check - no token');
+      return;
+    }
+    
+    console.log('Making favorite status API call for property:', property.id);
+    // Only now make the API call
+    checkFavoriteStatus();
   }, [isAuthenticated, user, loading, property.id]);
 
   const checkFavoriteStatus = async () => {
