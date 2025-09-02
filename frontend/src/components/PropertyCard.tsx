@@ -11,22 +11,48 @@ interface PropertyCardProps {
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Reset favorite state when authentication changes
+    setIsFavorited(false);
+    
+    // Only check favorite status if user is fully authenticated
+    if (isAuthenticated && user && !loading) {
       checkFavoriteStatus();
     }
-  }, [isAuthenticated, property.id]);
+  }, [isAuthenticated, user, loading, property.id]);
 
   const checkFavoriteStatus = async () => {
+    // Triple check authentication state
+    if (!isAuthenticated || !user || loading) {
+      setIsFavorited(false);
+      return;
+    }
+    
+    // Check if token exists
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setIsFavorited(false);
+      return;
+    }
+    
     try {
       const favorited = await authService.isFavorited(property.id);
       setIsFavorited(favorited);
-    } catch (error) {
-      console.error('Error checking favorite status:', error);
+    } catch (error: any) {
+      // Silently handle authentication errors - user may not be properly logged in
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        setIsFavorited(false);
+        // Clear invalid authentication state
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      } else {
+        console.error('Error checking favorite status:', error);
+        setIsFavorited(false);
+      }
     }
   };
 
@@ -124,23 +150,25 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick }) => {
           {getStatusText(property.status)}
         </div>
 
-        {/* Favorite Heart Button */}
-        <button
-          onClick={handleFavoriteToggle}
-          disabled={isToggling}
-          className={`absolute top-4 left-4 p-2 rounded-full shadow-lg transition-all duration-200 ${
-            isFavorited 
-              ? 'bg-red-500 text-white hover:bg-red-600' 
-              : 'bg-white bg-opacity-90 text-gray-600 hover:bg-red-50 hover:text-red-500'
-          } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'}`}
-          title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-        >
-          {isToggling ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-current"></div>
-          ) : (
-            <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
-          )}
-        </button>
+        {/* Favorite Heart Button - Only show for authenticated users */}
+        {isAuthenticated && user && !loading && (
+          <button
+            onClick={handleFavoriteToggle}
+            disabled={isToggling}
+            className={`absolute top-4 left-4 p-2 rounded-full shadow-lg transition-all duration-200 ${
+              isFavorited 
+                ? 'bg-red-500 text-white hover:bg-red-600' 
+                : 'bg-white bg-opacity-90 text-gray-600 hover:bg-red-50 hover:text-red-500'
+            } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'}`}
+            title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {isToggling ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-current"></div>
+            ) : (
+              <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
+            )}
+          </button>
+        )}
       </div>
 
       <div className="p-5">

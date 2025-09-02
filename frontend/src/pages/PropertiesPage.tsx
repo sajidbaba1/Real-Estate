@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, X, MapPin, DollarSign, Bed, Bath } from 'lucide-react';
+import { Filter, X, MapPin, DollarSign, Bed, Bath, Map, List } from 'lucide-react';
 import PropertyCard from '../components/PropertyCard';
+import PropertiesMapView from '../components/PropertiesMapView';
 import { propertyApi } from '../services/api';
 import { Property, PropertyType, PropertyStatus } from '../types/Property';
 
@@ -10,6 +11,7 @@ const PropertiesPage: React.FC = () => {
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -105,6 +107,10 @@ const PropertiesPage: React.FC = () => {
 
   const hasActiveFilters = Object.values(filters).some(value => value !== '');
 
+  const handlePropertyClick = (property: Property) => {
+    window.location.href = `/properties/${property.id}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -120,7 +126,33 @@ const PropertiesPage: React.FC = () => {
               {filteredProperties.length} Properties Found
             </h2>
             
-            <div className="flex space-x-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {/* View Toggle */}
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-white text-primary-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <List className="w-4 h-4 mr-1" />
+                  List
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'map'
+                      ? 'bg-white text-primary-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Map className="w-4 h-4 mr-1" />
+                  Map
+                </button>
+              </div>
+
               {hasActiveFilters && (
                 <button 
                   onClick={clearFilters}
@@ -273,12 +305,12 @@ const PropertiesPage: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        {/* Properties Grid */}
+        {/* Properties Content */}
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           <motion.div 
             layout
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
@@ -288,11 +320,17 @@ const PropertiesPage: React.FC = () => {
                 <PropertyCard 
                   key={property.id} 
                   property={property} 
-                  onClick={() => window.location.hash = `#/properties/${property.id}`}
+                  onClick={() => handlePropertyClick(property)}
                 />
               ))}
             </AnimatePresence>
           </motion.div>
+        ) : (
+          <PropertiesMapView
+            properties={filteredProperties}
+            onPropertyClick={handlePropertyClick}
+            className="mb-8"
+          />
         )}
 
         {!loading && filteredProperties.length === 0 && (
