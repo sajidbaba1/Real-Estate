@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { propertyApi } from '../services/api';
 import { Property, PropertyStatus } from '../types/Property';
+import GoogleMap from '../components/GoogleMap';
+import { GeocodingService } from '../services/geocoding';
 
 const PropertyDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +25,7 @@ const PropertyDetailPage: React.FC = () => {
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -35,11 +38,41 @@ const PropertyDetailPage: React.FC = () => {
       setLoading(true);
       const data = await propertyApi.getPropertyById(propertyId);
       setProperty(data);
+      
+      // Get coordinates for the property location
+      await getPropertyCoordinates(data);
     } catch (err) {
       console.error('Error fetching property:', err);
       setError('Failed to load property details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getPropertyCoordinates = async (property: Property) => {
+    try {
+      // Use existing coordinates if available
+      if (property.latitude && property.longitude) {
+        setCoordinates({ lat: property.latitude, lng: property.longitude });
+        return;
+      }
+
+      // Try to geocode the full address
+      const fullAddress = `${property.address}, ${property.city}, ${property.state} ${property.zipCode}`;
+      const geocodeResult = await GeocodingService.geocodeAddress(fullAddress);
+      
+      if (geocodeResult) {
+        setCoordinates({ lat: geocodeResult.lat, lng: geocodeResult.lng });
+      } else {
+        // Fallback to city/state default coordinates
+        const defaultCoords = GeocodingService.getDefaultCoordinates(property.city, property.state);
+        setCoordinates(defaultCoords);
+      }
+    } catch (error) {
+      console.error('Error getting property coordinates:', error);
+      // Fallback to city/state default coordinates
+      const defaultCoords = GeocodingService.getDefaultCoordinates(property.city, property.state);
+      setCoordinates(defaultCoords);
     }
   };
 
@@ -233,6 +266,44 @@ const PropertyDetailPage: React.FC = () => {
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">Description</h2>
               <p className="text-gray-700 leading-relaxed whitespace-pre-line">{property.description}</p>
+            </div>
+
+            {/* Location Map */}
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Location</h2>
+              <div className="bg-white rounded-lg shadow-card overflow-hidden">
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center text-gray-700">
+                    <MapPin className="w-5 h-5 mr-2 text-primary-600" />
+                    <span className="font-medium">
+                      {property.address}, {property.city}, {property.state} {property.zipCode}
+                    </span>
+                  </div>
+                </div>
+                <div className="h-96">
+                  {coordinates ? (
+                    <GoogleMap
+                      center={coordinates}
+                      zoom={16}
+                      markers={[
+                        {
+                          position: coordinates,
+                          title: property.title,
+                          info: `${formatPrice(property.price)} • ${property.bedrooms} bed, ${property.bathrooms} bath`,
+                        },
+                      ]}
+                      height="384px"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full bg-gray-100">
+                      <div className="text-center">
+                        <MapPin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-600">Loading map...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Contact Section */}

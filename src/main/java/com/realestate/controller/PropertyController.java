@@ -14,7 +14,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/properties")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5175", "https://real-estate-alpha-sandy.vercel.app"})
 public class PropertyController {
 
     @Autowired
@@ -130,5 +130,56 @@ public class PropertyController {
     public ResponseEntity<List<Property>> getPropertiesByMinBathrooms(@PathVariable Integer bathrooms) {
         List<Property> properties = propertyRepository.findByMinBathrooms(bathrooms);
         return ResponseEntity.ok(properties);
+    }
+
+    // Advanced search with multiple optional filters
+    @GetMapping("/advanced-search")
+    public ResponseEntity<List<Property>> advancedSearch(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) Property.PropertyType propertyType,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false) Integer minBedrooms,
+            @RequestParam(required = false) Integer maxBedrooms,
+            @RequestParam(required = false) Integer minBathrooms,
+            @RequestParam(required = false) Integer maxBathrooms,
+            @RequestParam(required = false) Property.PropertyStatus status
+    ) {
+        List<Property> properties = propertyRepository.findPropertiesWithFilters(
+                emptyToNull(keyword),
+                emptyToNull(city),
+                emptyToNull(state),
+                propertyType,
+                minPrice,
+                maxPrice,
+                minBedrooms,
+                maxBedrooms,
+                minBathrooms,
+                maxBathrooms,
+                status
+        );
+        return ResponseEntity.ok(properties);
+    }
+
+    // Metadata for building filters (cities, states, price range)
+    @GetMapping("/filters/meta")
+    public ResponseEntity<?> getFilterMeta() {
+        var cities = propertyRepository.findDistinctCities();
+        var states = propertyRepository.findDistinctStates();
+        var minPrice = propertyRepository.findMinPrice();
+        var maxPrice = propertyRepository.findMaxPrice();
+        return ResponseEntity.ok(java.util.Map.of(
+                "cities", cities,
+                "states", states,
+                "minPrice", minPrice,
+                "maxPrice", maxPrice
+        ));
+    }
+
+    // Helper to treat empty strings as null for optional filters
+    private String emptyToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s;
     }
 }

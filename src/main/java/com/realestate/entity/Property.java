@@ -44,6 +44,12 @@ public class Property {
     @Column(nullable = false)
     private String zipCode;
     
+    @Column(name = "latitude")
+    private Double latitude;
+    
+    @Column(name = "longitude")
+    private Double longitude;
+    
     @NotNull(message = "Bedrooms count is required")
     @Positive(message = "Bedrooms must be positive")
     @Column(nullable = false)
@@ -140,6 +146,12 @@ public class Property {
     
     public String getZipCode() { return zipCode; }
     public void setZipCode(String zipCode) { this.zipCode = zipCode; }
+    
+    public Double getLatitude() { return latitude; }
+    public void setLatitude(Double latitude) { this.latitude = latitude; }
+    
+    public Double getLongitude() { return longitude; }
+    public void setLongitude(Double longitude) { this.longitude = longitude; }
     
     public Integer getBedrooms() { return bedrooms; }
     public void setBedrooms(Integer bedrooms) { this.bedrooms = bedrooms; }

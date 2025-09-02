@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { LoginRequest, RegisterRequest, AuthResponse, User } from '../types/Auth';
+import { Property } from '../types/Property';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
 
@@ -34,8 +35,36 @@ export const authService = {
 
   // Get current user
   getCurrentUser: async (): Promise<User> => {
-    const response = await authApi.get('/auth/me');
+    const response = await authApi.get('/users/me');
     return response.data;
+  },
+
+  // Update user profile
+  updateProfile: async (userData: Partial<User>): Promise<User> => {
+    const response = await authApi.put('/users/me', userData);
+    return response.data;
+  },
+
+  // Get user favorites
+  getFavorites: async (): Promise<Property[]> => {
+    const response = await authApi.get('/users/me/favorites');
+    return response.data;
+  },
+
+  // Add property to favorites
+  addToFavorites: async (propertyId: number): Promise<void> => {
+    await authApi.post(`/users/me/favorites/${propertyId}`);
+  },
+
+  // Remove property from favorites
+  removeFromFavorites: async (propertyId: number): Promise<void> => {
+    await authApi.delete(`/users/me/favorites/${propertyId}`);
+  },
+
+  // Check if property is favorited
+  isFavorited: async (propertyId: number): Promise<boolean> => {
+    const response = await authApi.get(`/users/me/favorites/${propertyId}`);
+    return response.data.favorited;
   },
 
   // Logout (client-side only)

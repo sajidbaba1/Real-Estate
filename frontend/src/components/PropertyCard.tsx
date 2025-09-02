@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Property, PropertyStatus } from '../types/Property';
-import { MapPin, Bed, Bath, Square } from 'lucide-react';
+import { MapPin, Bed, Bath, Square, Heart } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { authService } from '../services/authApi';
 
 interface PropertyCardProps {
   property: Property;
@@ -9,6 +11,49 @@ interface PropertyCardProps {
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick }) => {
+  const { isAuthenticated } = useAuth();
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isToggling, setIsToggling] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkFavoriteStatus();
+    }
+  }, [isAuthenticated, property.id]);
+
+  const checkFavoriteStatus = async () => {
+    try {
+      const favorited = await authService.isFavorited(property.id);
+      setIsFavorited(favorited);
+    } catch (error) {
+      console.error('Error checking favorite status:', error);
+    }
+  };
+
+  const handleFavoriteToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!isAuthenticated) {
+      window.location.href = '/login';
+      return;
+    }
+
+    setIsToggling(true);
+    try {
+      if (isFavorited) {
+        await authService.removeFromFavorites(property.id);
+        setIsFavorited(false);
+      } else {
+        await authService.addToFavorites(property.id);
+        setIsFavorited(true);
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
   const getStatusBadgeClass = (status: PropertyStatus) => {
     switch (status) {
       case PropertyStatus.FOR_SALE:
@@ -78,6 +123,24 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick }) => {
         <div className={`absolute top-4 right-4 ${getStatusBadgeClass(property.status)}`}>
           {getStatusText(property.status)}
         </div>
+
+        {/* Favorite Heart Button */}
+        <button
+          onClick={handleFavoriteToggle}
+          disabled={isToggling}
+          className={`absolute top-4 left-4 p-2 rounded-full shadow-lg transition-all duration-200 ${
+            isFavorited 
+              ? 'bg-red-500 text-white hover:bg-red-600' 
+              : 'bg-white bg-opacity-90 text-gray-600 hover:bg-red-50 hover:text-red-500'
+          } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'hover:scale-110'}`}
+          title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          {isToggling ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-current"></div>
+          ) : (
+            <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
+          )}
+        </button>
       </div>
 
       <div className="p-5">

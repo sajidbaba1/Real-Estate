@@ -13,6 +13,8 @@ export interface Property {
   propertyType: PropertyType;
   status: PropertyStatus;
   imageUrl?: string;
+  latitude?: number;
+  longitude?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -37,6 +39,7 @@ export interface PropertyFilters {
   minPrice?: number;
   maxPrice?: number;
   city?: string;
+  state?: string;
   propertyType?: PropertyType;
   status?: PropertyStatus;
   minBedrooms?: number;

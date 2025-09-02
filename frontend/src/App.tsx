@@ -8,6 +8,8 @@ import PropertyDetailPage from './pages/PropertyDetailPage';
 import AddPropertyPage from './pages/AddPropertyPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ProfilePage from './pages/ProfilePage';
+import FavoritesPage from './pages/FavoritesPage';
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
             <Route path="/add-property" element={<AddPropertyPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
           </Routes>
         </motion.main>
       </div>

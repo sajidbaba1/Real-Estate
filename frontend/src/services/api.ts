@@ -40,46 +40,38 @@ export const propertyApi = {
     await api.delete(`/properties/${id}`);
   },
 
-  // Search properties by filters
+  // Advanced search properties with multiple filters
   searchProperties: async (filters: PropertyFilters): Promise<Property[]> => {
+    const params = new URLSearchParams();
     
-    if (filters.keyword) {
-      const response = await api.get(`/properties/search?keyword=${filters.keyword}`);
-      return response.data;
-    }
+    if (filters.keyword) params.append('keyword', filters.keyword);
+    if (filters.city) params.append('city', filters.city);
+    if (filters.state) params.append('state', filters.state);
+    if (filters.minPrice) params.append('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice) params.append('maxPrice', filters.maxPrice.toString());
+    if (filters.minBedrooms) params.append('bedrooms', filters.minBedrooms.toString());
+    if (filters.minBathrooms) params.append('bathrooms', filters.minBathrooms.toString());
+    if (filters.propertyType) params.append('type', filters.propertyType);
+    if (filters.status) params.append('status', filters.status);
     
-    if (filters.minPrice && filters.maxPrice) {
-      const response = await api.get(`/properties/price-range?minPrice=${filters.minPrice}&maxPrice=${filters.maxPrice}`);
-      return response.data;
-    }
-    
-    if (filters.city) {
-      const response = await api.get(`/properties/city/${filters.city}`);
-      return response.data;
-    }
-    
-    if (filters.propertyType) {
-      const response = await api.get(`/properties/type/${filters.propertyType}`);
-      return response.data;
-    }
-    
-    if (filters.status) {
-      const response = await api.get(`/properties/status/${filters.status}`);
-      return response.data;
-    }
-    
-    if (filters.minBedrooms) {
-      const response = await api.get(`/properties/bedrooms/${filters.minBedrooms}`);
-      return response.data;
-    }
-    
-    if (filters.minBathrooms) {
-      const response = await api.get(`/properties/bathrooms/${filters.minBathrooms}`);
-      return response.data;
-    }
-    
-    // Default to all properties if no filters
-    return await propertyApi.getAllProperties();
+    const response = await api.get(`/properties/search?${params.toString()}`);
+    return response.data;
+  },
+
+  // Get filter metadata
+  getCities: async (): Promise<string[]> => {
+    const response = await api.get('/properties/cities');
+    return response.data;
+  },
+
+  getStates: async (): Promise<string[]> => {
+    const response = await api.get('/properties/states');
+    return response.data;
+  },
+
+  getPriceRange: async (): Promise<{ minPrice: number; maxPrice: number }> => {
+    const response = await api.get('/properties/price-range');
+    return response.data;
   },
 };
 
