@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, Building, Plus, Search, User, Menu, X } from 'lucide-react';
+import { Home, Building, Plus, Search, User, Menu, X, LogOut, LogIn } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
@@ -58,10 +60,39 @@ const Navbar: React.FC = () => {
             <button className="p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
               <Search className="w-5 h-5" />
             </button>
-            <div className="flex items-center space-x-2 bg-primary-600 text-white px-3 py-2 rounded-lg">
-              <User className="w-5 h-5" />
-              <span className="text-sm font-medium">SAJID SHAIKH</span>
-            </div>
+            
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 bg-primary-600 text-white px-3 py-2 rounded-lg">
+                  <User className="w-5 h-5" />
+                  <span className="text-sm font-medium">{user?.firstName} {user?.lastName}</span>
+                </div>
+                <button
+                  onClick={logout}
+                  className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="text-sm font-medium">Logout</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Link
+                  to="/login"
+                  className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span className="text-sm font-medium">Login</span>
+                </Link>
+                <Link
+                  to="/register"
+                  className="flex items-center space-x-2 px-3 py-2 bg-primary-600 text-white hover:bg-primary-700 rounded-lg transition-colors duration-200"
+                >
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium">Sign Up</span>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -101,10 +132,43 @@ const Navbar: React.FC = () => {
                   </Link>
                 );
               })}
-              <div className="flex items-center space-x-3 px-4 py-3 bg-primary-600 text-white rounded-lg mt-4">
-                <User className="w-5 h-5" />
-                <span className="font-medium">SAJID SHAIKH</span>
-              </div>
+              {isAuthenticated ? (
+                <>
+                  <div className="flex items-center space-x-3 px-4 py-3 bg-primary-600 text-white rounded-lg mt-4">
+                    <User className="w-5 h-5" />
+                    <span className="font-medium">{user?.firstName} {user?.lastName}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      logout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 mt-2"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span className="font-medium">Logout</span>
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col space-y-2 mt-4">
+                  <Link
+                    to="/login"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center space-x-3 px-4 py-3 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                  >
+                    <LogIn className="w-5 h-5" />
+                    <span className="font-medium">Login</span>
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center space-x-3 px-4 py-3 bg-primary-600 text-white hover:bg-primary-700 rounded-lg transition-colors duration-200"
+                  >
+                    <User className="w-5 h-5" />
+                    <span className="font-medium">Sign Up</span>
+                  </Link>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
