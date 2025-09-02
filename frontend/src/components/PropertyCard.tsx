@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Property, PropertyStatus } from '../types/Property';
-import { MapPin, Bed, Bath, Square, Calendar } from 'lucide-react';
+import { MapPin, Bed, Bath, Square } from 'lucide-react';
 
 interface PropertyCardProps {
   property: Property;

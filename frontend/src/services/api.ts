@@ -42,7 +42,6 @@ export const propertyApi = {
 
   // Search properties by filters
   searchProperties: async (filters: PropertyFilters): Promise<Property[]> => {
-    const params = new URLSearchParams();
     
     if (filters.keyword) {
       const response = await api.get(`/properties/search?keyword=${filters.keyword}`);
