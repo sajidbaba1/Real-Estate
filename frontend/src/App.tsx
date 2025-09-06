@@ -10,6 +10,13 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import FavoritesPage from './pages/FavoritesPage';
+import AdminDashboard from './pages/AdminDashboard';
+import AgentDashboard from './pages/AgentDashboard';
+import ClientDashboard from './pages/ClientDashboard';
+import AdminUsersPage from './pages/AdminUsersPage';
+import AdminAnalyticsPage from './pages/AdminAnalyticsPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import MyListingsPage from './pages/MyListingsPage';
 
 function App() {
   return (
@@ -26,11 +33,59 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/properties" element={<PropertiesPage />} />
             <Route path="/properties/:id" element={<PropertyDetailPage />} />
-            <Route path="/add-property" element={<AddPropertyPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/favorites" element={<FavoritesPage />} />
+            
+            {/* Protected Routes - Require Authentication */}
+            <Route path="/add-property" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'AGENT']}>
+                <AddPropertyPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-listings" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'AGENT']}>
+                <MyListingsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/favorites" element={
+              <ProtectedRoute>
+                <FavoritesPage />
+              </ProtectedRoute>
+            } />
+            
+            {/* Role-Specific Dashboards */}
+            <Route path="/dashboard/admin" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/agent" element={
+              <ProtectedRoute allowedRoles={['AGENT']}>
+                <AgentDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/client" element={
+              <ProtectedRoute allowedRoles={['USER']}>
+                <ClientDashboard />
+              </ProtectedRoute>
+            } />
+            
+            {/* Admin-Only Routes */}
+            <Route path="/admin/users" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminUsersPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/analytics" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminAnalyticsPage />
+              </ProtectedRoute>
+            } />
           </Routes>
         </motion.main>
       </div>

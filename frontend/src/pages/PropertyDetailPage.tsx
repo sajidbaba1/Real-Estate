@@ -18,6 +18,7 @@ import { propertyApi } from '../services/api';
 import { Property, PropertyStatus } from '../types/Property';
 import GoogleMap from '../components/GoogleMap';
 import { GeocodingService } from '../services/geocoding';
+import { sampleProperties } from '../data/sampleProperties';
 
 const PropertyDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,11 +37,24 @@ const PropertyDetailPage: React.FC = () => {
   const fetchProperty = async (propertyId: number) => {
     try {
       setLoading(true);
-      const data = await propertyApi.getPropertyById(propertyId);
+      
+      // Static implementation - get from sample data and localStorage
+      const userProperties = JSON.parse(localStorage.getItem('userProperties') || '[]');
+      const allProperties = [...sampleProperties, ...userProperties];
+      const data = allProperties.find(p => p.id === propertyId);
+      
+      if (!data) {
+        setError('Property not found');
+        return;
+      }
+      
       setProperty(data);
       
       // Get coordinates for the property location
       await getPropertyCoordinates(data);
+      
+      // TODO: Replace with API call when backend is ready
+      // const data = await propertyApi.getPropertyById(propertyId);
     } catch (err) {
       console.error('Error fetching property:', err);
       setError('Failed to load property details');
@@ -81,7 +95,24 @@ const PropertyDetailPage: React.FC = () => {
     
     if (window.confirm('Are you sure you want to delete this property?')) {
       try {
-        await propertyApi.deleteProperty(parseInt(id));
+        // Static implementation - remove from localStorage and sample data
+        const propertyId = parseInt(id);
+        
+        // Remove from user properties in localStorage
+        const userProperties = JSON.parse(localStorage.getItem('userProperties') || '[]');
+        const updatedUserProperties = userProperties.filter((p: Property) => p.id !== propertyId);
+        localStorage.setItem('userProperties', JSON.stringify(updatedUserProperties));
+        
+        // Remove from sample properties array (if it exists there)
+        const sampleIndex = sampleProperties.findIndex(p => p.id === propertyId);
+        if (sampleIndex !== -1) {
+          sampleProperties.splice(sampleIndex, 1);
+        }
+        
+        // TODO: Replace with API call when backend is ready
+        // await propertyApi.deleteProperty(parseInt(id));
+        
+        alert('Property deleted successfully!');
         navigate('/properties');
       } catch (err) {
         console.error('Error deleting property:', err);

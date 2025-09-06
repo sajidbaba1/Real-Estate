@@ -4,8 +4,10 @@ import { Search, Filter, MapPin, DollarSign, Home } from 'lucide-react';
 import PropertyCard from '../components/PropertyCard';
 import { propertyApi } from '../services/api';
 import { Property, PropertyStatus } from '../types/Property';
+import { useAuth } from '../contexts/AuthContext';
 
 const HomePage: React.FC = () => {
+  const { user } = useAuth();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,6 +98,29 @@ const HomePage: React.FC = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+
+      {/* Admin Welcome Banner */}
+      {user?.role === 'ADMIN' && (
+        <div className="bg-yellow-50 border-y border-yellow-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+            >
+              <div>
+                <p className="text-sm text-yellow-800 font-semibold">Welcome back, Admin</p>
+                <p className="text-yellow-700 text-sm">Use your quick actions to manage the platform.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <a href="/admin/users" className="px-3 py-2 text-sm bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">Manage Users</a>
+                <a href="/admin/analytics" className="px-3 py-2 text-sm bg-white text-yellow-800 border border-yellow-300 rounded-lg hover:bg-yellow-100">View Analytics</a>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      )}
             
             <div className="flex items-center px-4 border border-gray-200 rounded-lg">
               <Filter className="text-gray-400 mr-2" />

@@ -1,24 +1,78 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, Building, Plus, Search, User, Menu, X, LogOut, LogIn, Heart, UserCircle } from 'lucide-react';
+import { Home, Building, Plus, Search, User, Menu, X, LogOut, LogIn, Heart, UserCircle, Shield, Briefcase, Users, BarChart3 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
 
-  const navItems = [
-    { path: '/', label: 'Home', icon: Home },
-    { path: '/properties', label: 'Properties', icon: Building },
-    { path: '/add-property', label: 'Add Property', icon: Plus },
-  ];
+  // Role-based navigation items
+  const getNavItems = () => {
+    if (!isAuthenticated || !user) {
+      return [
+        { path: '/', label: 'Home', icon: Home },
+        { path: '/properties', label: 'Properties', icon: Building },
+      ];
+    }
 
-  const userNavItems = [
-    { path: '/profile', label: 'Profile', icon: UserCircle },
-    { path: '/favorites', label: 'Favorites', icon: Heart },
-  ];
+    switch (user.role) {
+      case 'ADMIN':
+        // Admin main nav is intentionally minimal
+        return [
+          { path: '/', label: 'Home', icon: Home },
+          { path: '/dashboard/admin', label: 'Admin Dashboard', icon: Shield },
+        ];
+      case 'AGENT':
+        return [
+          { path: '/', label: 'Home', icon: Home },
+          { path: '/properties', label: 'Properties', icon: Building },
+          { path: '/dashboard/agent', label: 'Agent Dashboard', icon: Briefcase },
+          { path: '/add-property', label: 'Add Property', icon: Plus },
+        ];
+      case 'USER':
+      default:
+        return [
+          { path: '/', label: 'Home', icon: Home },
+          { path: '/properties', label: 'Properties', icon: Building },
+          { path: '/dashboard/client', label: 'My Dashboard', icon: User },
+        ];
+    }
+  };
+
+  const getUserNavItems = () => {
+    if (!isAuthenticated || !user) return [];
+    
+    const baseUserItems = [
+      { path: '/profile', label: 'Profile', icon: UserCircle },
+    ];
+
+    switch (user.role) {
+      case 'ADMIN':
+        return [
+          ...baseUserItems,
+          { path: '/admin/users', label: 'Manage Users', icon: Users },
+          { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+        ];
+      case 'AGENT':
+        return [
+          ...baseUserItems,
+          { path: '/favorites', label: 'Favorites', icon: Heart },
+        ];
+      case 'USER':
+      default:
+        return [
+          ...baseUserItems,
+          { path: '/favorites', label: 'Favorites', icon: Heart },
+        ];
+    }
+  };
+
+  const navItems = getNavItems();
+  const userNavItems = getUserNavItems();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -59,24 +113,7 @@ const Navbar: React.FC = () => {
               );
             })}
             
-            {/* User Navigation Items (Profile, Favorites) */}
-            {isAuthenticated && userNavItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-200 ${
-                    isActive(item.path)
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-gray-600 hover:text-primary-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.label}</span>
-                </Link>
-              );
-            })}
+            {/* (desktop) role-agnostic nav items rendered above; user menu will hold profile/actions */}
           </div>
 
           {/* Search and User */}
@@ -86,18 +123,44 @@ const Navbar: React.FC = () => {
             </button>
             
             {isAuthenticated ? (
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2 bg-primary-600 text-white px-3 py-2 rounded-lg">
-                  <User className="w-5 h-5" />
-                  <span className="text-sm font-medium">{user?.firstName} {user?.lastName}</span>
-                </div>
+              <div className="relative">
                 <button
-                  onClick={logout}
-                  className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                  onClick={() => setIsUserMenuOpen(v => !v)}
+                  className="flex items-center space-x-2 bg-primary-600 text-white px-3 py-2 rounded-lg hover:bg-primary-700"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span className="text-sm font-medium">Logout</span>
+                  {user?.role === 'ADMIN' && <Shield className="w-5 h-5" />}
+                  {user?.role === 'AGENT' && <Briefcase className="w-5 h-5" />}
+                  {user?.role === 'USER' && <User className="w-5 h-5" />}
+                  <span className="text-sm font-medium">{user?.firstName} {user?.lastName}</span>
+                  <span className="text-xs bg-white/20 px-2 py-1 rounded">
+                    {user?.role === 'USER' ? 'CLIENT' : user?.role}
+                  </span>
                 </button>
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-100 py-2">
+                    {userNavItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className={`flex items-center space-x-2 px-4 py-2 text-sm hover:bg-gray-50 ${isActive(item.path) ? 'text-primary-700' : 'text-gray-700'}`}
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                    <button
+                      onClick={() => { setIsUserMenuOpen(false); logout(); }}
+                      className="w-full text-left flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center space-x-2">
@@ -179,8 +242,15 @@ const Navbar: React.FC = () => {
               {isAuthenticated ? (
                 <>
                   <div className="flex items-center space-x-3 px-4 py-3 bg-primary-600 text-white rounded-lg mt-4">
-                    <User className="w-5 h-5" />
-                    <span className="font-medium">{user?.firstName} {user?.lastName}</span>
+                    {user?.role === 'ADMIN' && <Shield className="w-5 h-5" />}
+                    {user?.role === 'AGENT' && <Briefcase className="w-5 h-5" />}
+                    {user?.role === 'USER' && <User className="w-5 h-5" />}
+                    <div className="flex flex-col">
+                      <span className="font-medium">{user?.firstName} {user?.lastName}</span>
+                      <span className="text-xs text-white/80">
+                        {user?.role === 'USER' ? 'CLIENT' : user?.role}
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={() => {

@@ -33,7 +33,7 @@ export class GeocodingService {
           formattedAddress: result.formatted_address,
         };
       } else {
-        console.warn('Geocoding failed:', data.status);
+        console.warn('Geocoding failed:', data.status, data.error_message || '');
         return null;
       }
     } catch (error) {
@@ -62,7 +62,7 @@ export class GeocodingService {
       if (data.status === 'OK' && data.results.length > 0) {
         return data.results[0].formatted_address;
       } else {
-        console.warn('Reverse geocoding failed:', data.status);
+        console.warn('Reverse geocoding failed:', data.status, data.error_message || '');
         return null;
       }
     } catch (error) {

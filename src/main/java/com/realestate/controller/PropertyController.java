@@ -2,11 +2,15 @@ package com.realestate.controller;
 
 import com.realestate.entity.Property;
 import com.realestate.repository.PropertyRepository;
+import com.realestate.entity.User;
+import com.realestate.repository.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -19,6 +23,9 @@ public class PropertyController {
 
     @Autowired
     private PropertyRepository propertyRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     // Get all properties
     @GetMapping
@@ -35,9 +42,10 @@ public class PropertyController {
                       .orElse(ResponseEntity.notFound().build());
     }
 
-    // Create new property
+    // Create new property (owner = current authenticated user if available)
     @PostMapping
     public ResponseEntity<Property> createProperty(@Valid @RequestBody Property property) {
+        getCurrentUser().ifPresent(property::setOwner);
         Property savedProperty = propertyRepository.save(property);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedProperty);
     }
@@ -49,6 +57,18 @@ public class PropertyController {
         
         if (optionalProperty.isPresent()) {
             Property property = optionalProperty.get();
+
+            // Authorization: only ADMIN or owner can update
+            Optional<User> currentUserOpt = getCurrentUser();
+            if (currentUserOpt.isPresent()) {
+                User current = currentUserOpt.get();
+                boolean isAdmin = current.getRole() == User.Role.ADMIN;
+                boolean isOwner = property.getOwner() != null && property.getOwner().getId().equals(current.getId());
+                if (!isAdmin && !isOwner) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                }
+            }
+
             property.setTitle(propertyDetails.getTitle());
             property.setDescription(propertyDetails.getDescription());
             property.setPrice(propertyDetails.getPrice());
@@ -62,6 +82,9 @@ public class PropertyController {
             property.setPropertyType(propertyDetails.getPropertyType());
             property.setStatus(propertyDetails.getStatus());
             property.setImageUrl(propertyDetails.getImageUrl());
+            property.setLatitude(propertyDetails.getLatitude());
+            property.setLongitude(propertyDetails.getLongitude());
+            // Do not allow changing owner via update body; preserve existing owner
             
             Property updatedProperty = propertyRepository.save(property);
             return ResponseEntity.ok(updatedProperty);
@@ -73,12 +96,36 @@ public class PropertyController {
     // Delete property
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProperty(@PathVariable Long id) {
-        if (propertyRepository.existsById(id)) {
-            propertyRepository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        } else {
+        Optional<Property> optional = propertyRepository.findById(id);
+        if (optional.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+
+        Property property = optional.get();
+        Optional<User> currentUserOpt = getCurrentUser();
+        if (currentUserOpt.isPresent()) {
+            User current = currentUserOpt.get();
+            boolean isAdmin = current.getRole() == User.Role.ADMIN;
+            boolean isOwner = property.getOwner() != null && property.getOwner().getId().equals(current.getId());
+            if (!isAdmin && !isOwner) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        }
+
+        propertyRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Get properties of current authenticated user (ADMIN gets all or own? We'll return own listings)
+    @GetMapping("/my")
+    public ResponseEntity<List<Property>> getMyProperties() {
+        Optional<User> currentUserOpt = getCurrentUser();
+        if (currentUserOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        User current = currentUserOpt.get();
+        List<Property> mine = propertyRepository.findByOwner_Id(current.getId());
+        return ResponseEntity.ok(mine);
     }
 
     // Search properties by status
@@ -181,5 +228,26 @@ public class PropertyController {
     // Helper to treat empty strings as null for optional filters
     private String emptyToNull(String s) {
         return (s == null || s.isBlank()) ? null : s;
+    }
+
+    // Helper: get current authenticated user from security context
+    private Optional<User> getCurrentUser() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth == null || !auth.isAuthenticated()) {
+                return Optional.empty();
+            }
+            Object principal = auth.getPrincipal();
+            if (principal instanceof org.springframework.security.core.userdetails.User userDetails) {
+                String email = userDetails.getUsername();
+                return userRepository.findByEmailAndEnabledTrue(email);
+            }
+            if (principal instanceof User u) {
+                return Optional.of(u);
+            }
+            return Optional.empty();
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 }

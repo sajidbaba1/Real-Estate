@@ -41,9 +41,32 @@ const LoginPage: React.FC = () => {
       setLoading(true);
       setError('');
       await login(formData.email, formData.password);
+      // After normal login, send user to home; role-based demo buttons handle their own navigation
       navigate('/');
     } catch (error: any) {
       setError(error.response?.data || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const quickLogin = async (role: 'ADMIN' | 'AGENT' | 'USER') => {
+    try {
+      setLoading(true);
+      setError('');
+      const creds = {
+        // Redirect ADMIN to home to show the admin welcome banner
+        ADMIN: { email: 'admin@demo.com', password: 'Demo@12345', redirect: '/' },
+        AGENT: { email: 'agent@demo.com', password: 'Demo@12345', redirect: '/dashboard/agent' },
+        USER: { email: 'user@demo.com', password: 'Demo@12345', redirect: '/dashboard/client' },
+      }[role];
+
+      // Persist in form for transparency
+      setFormData({ email: creds.email, password: creds.password });
+      await login(creds.email, creds.password);
+      navigate(creds.redirect);
+    } catch (error: any) {
+      setError('Demo login failed. Ensure backend is running and demo users are seeded.');
     } finally {
       setLoading(false);
     }
@@ -148,6 +171,41 @@ const LoginPage: React.FC = () => {
               {error}
             </motion.div>
           )}
+
+          {/* Demo Accounts */}
+          <div className="space-y-3">
+            <div className="text-center text-sm text-gray-500">Or use a demo account</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button
+                type="button"
+                onClick={() => quickLogin('ADMIN')}
+                disabled={loading}
+                className="w-full py-2 px-3 rounded-lg bg-gray-900 text-white hover:bg-black transition disabled:opacity-50"
+                title="admin@demo.com / Demo@12345"
+              >
+                Login as Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => quickLogin('AGENT')}
+                disabled={loading}
+                className="w-full py-2 px-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition disabled:opacity-50"
+                title="agent@demo.com / Demo@12345"
+              >
+                Login as Agent
+              </button>
+              <button
+                type="button"
+                onClick={() => quickLogin('USER')}
+                disabled={loading}
+                className="w-full py-2 px-3 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+                title="user@demo.com / Demo@12345"
+              >
+                Login as Client
+              </button>
+            </div>
+            <div className="text-xs text-gray-400 text-center">Credentials: email shown in tooltip • Password: Demo@12345</div>
+          </div>
 
           {/* Submit Button */}
           <div>

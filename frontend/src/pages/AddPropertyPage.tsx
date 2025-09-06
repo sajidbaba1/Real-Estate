@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, MapPin, Search, Target } from 'lucide-react';
 import { propertyApi } from '../services/api';
 import { Property, PropertyType, PropertyStatus } from '../types/Property';
+import GoogleMap from '../components/GoogleMap';
+import { GeocodingService } from '../services/geocoding';
+import { sampleProperties } from '../data/sampleProperties';
 
 const AddPropertyPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +27,16 @@ const AddPropertyPage: React.FC = () => {
     propertyType: PropertyType.HOUSE,
     status: PropertyStatus.FOR_SALE,
     imageUrl: '',
+    latitude: undefined,
+    longitude: undefined,
   });
+
+  // Map and location states
+  const [showMap, setShowMap] = useState(false);
+  const [mapCenter, setMapCenter] = useState({ lat: 39.8283, lng: -98.5795 }); // Center of US
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [searchingLocation, setSearchingLocation] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -49,6 +61,75 @@ const AddPropertyPage: React.FC = () => {
         delete newErrors[name];
         return newErrors;
       });
+    }
+  };
+
+  // Location and map handlers
+  const handleLocationSearch = async () => {
+    if (!locationSearch.trim()) return;
+    
+    setSearchingLocation(true);
+    try {
+      const result = await GeocodingService.geocodeAddress(locationSearch);
+      if (result) {
+        setMapCenter({ lat: result.lat, lng: result.lng });
+        setSelectedLocation({ lat: result.lat, lng: result.lng });
+        setProperty(prev => ({
+          ...prev,
+          latitude: result.lat,
+          longitude: result.lng,
+        }));
+        
+        // Try to extract address components
+        const parts = result.formattedAddress.split(', ');
+        if (parts.length >= 3) {
+          const [address, city, stateZip] = parts;
+          const [state, zipCode] = stateZip.split(' ');
+          setProperty(prev => ({
+            ...prev,
+            address: address || prev.address,
+            city: city || prev.city,
+            state: state || prev.state,
+            zipCode: zipCode || prev.zipCode,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error searching location:', error);
+    } finally {
+      setSearchingLocation(false);
+    }
+  };
+
+  const handleMapClick = (lat: number, lng: number) => {
+    setSelectedLocation({ lat, lng });
+    setProperty(prev => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng,
+    }));
+  };
+
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setMapCenter({ lat: latitude, lng: longitude });
+          setSelectedLocation({ lat: latitude, lng: longitude });
+          setProperty(prev => ({
+            ...prev,
+            latitude,
+            longitude,
+          }));
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          alert('Unable to get your current location. Please search for an address instead.');
+        }
+      );
+    } else {
+      alert('Geolocation is not supported by this browser.');
     }
   };
 
@@ -108,7 +189,27 @@ const AddPropertyPage: React.FC = () => {
     
     try {
       setLoading(true);
-      await propertyApi.createProperty(property);
+      
+      // Static implementation - add to localStorage and sample data
+      const newProperty: Property = {
+        ...property,
+        id: Date.now(), // Simple ID generation for static implementation
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      // Add to static sample data (for immediate display)
+      sampleProperties.push(newProperty);
+      
+      // Also save to localStorage for persistence
+      const existingProperties = JSON.parse(localStorage.getItem('userProperties') || '[]');
+      existingProperties.push(newProperty);
+      localStorage.setItem('userProperties', JSON.stringify(existingProperties));
+      
+      // TODO: Replace with API call when backend is ready
+      // await propertyApi.createProperty(property);
+      
+      alert('Property added successfully!');
       navigate('/properties');
     } catch (error) {
       console.error('Error creating property:', error);
@@ -266,6 +367,87 @@ const AddPropertyPage: React.FC = () => {
                 {errors.squareFeet && <p className="mt-1 text-sm text-red-600">{errors.squareFeet}</p>}
               </div>
               
+              {/* Location Selection */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-3">Property Location</label>
+                
+                {/* Location Search */}
+                <div className="mb-4">
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <input
+                        type="text"
+                        value={locationSearch}
+                        onChange={(e) => setLocationSearch(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleLocationSearch()}
+                        className="pl-10 w-full input-field"
+                        placeholder="Search for address or location..."
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleLocationSearch}
+                      disabled={searchingLocation}
+                      className="btn-primary px-4"
+                    >
+                      {searchingLocation ? 'Searching...' : 'Search'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={getCurrentLocation}
+                      className="btn-secondary px-4 flex items-center"
+                      title="Use current location"
+                    >
+                      <Target className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Map Toggle */}
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowMap(!showMap)}
+                    className="flex items-center text-primary-600 hover:text-primary-800 transition-colors"
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    {showMap ? 'Hide Map' : 'Show Map to Select Location'}
+                  </button>
+                </div>
+
+                {/* Interactive Map */}
+                {showMap && (
+                  <div className="mb-6 border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-2 text-sm text-gray-600">
+                      Click on the map to select the exact property location
+                    </div>
+                    <GoogleMap
+                      center={mapCenter}
+                      zoom={selectedLocation ? 15 : 10}
+                      markers={selectedLocation ? [{
+                        position: selectedLocation,
+                        title: 'Property Location',
+                        info: 'Selected property location'
+                      }] : []}
+                      height="400px"
+                      onMapLoad={(map) => {
+                        map.addListener('click', (e: any) => {
+                          const lat = e.latLng.lat();
+                          const lng = e.latLng.lng();
+                          handleMapClick(lat, lng);
+                        });
+                      }}
+                    />
+                    {selectedLocation && (
+                      <div className="bg-green-50 px-4 py-2 text-sm text-green-700">
+                        ✓ Location selected: {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Address */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>

@@ -7,24 +7,34 @@ import { Property } from '../types/Property';
 import PropertyCard from '../components/PropertyCard';
 
 const FavoritesPage: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, token } = useAuth();
   const [favorites, setFavorites] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<number | null>(null);
+  const [authRequired, setAuthRequired] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchFavorites();
-    }
-  }, [isAuthenticated]);
+    // Static implementation - fetch from localStorage for now
+    fetchFavorites();
+  }, []);
 
   const fetchFavorites = async () => {
     try {
       setLoading(true);
-      const data = await authService.getFavorites();
-      setFavorites(data);
-    } catch (error) {
+      
+      // Static implementation - get favorites from localStorage
+      const staticFavoriteIds = JSON.parse(localStorage.getItem('staticFavorites') || '[]');
+      
+      // Get all properties and filter by favorite IDs
+      // For now, we'll simulate this with sample data
+      const allProperties = await import('../data/sampleProperties').then(m => m.sampleProperties);
+      const favoriteProperties = allProperties.filter(property => staticFavoriteIds.includes(property.id));
+      
+      setFavorites(favoriteProperties);
+      setAuthRequired(false);
+    } catch (error: any) {
       console.error('Error fetching favorites:', error);
+      setFavorites([]);
     } finally {
       setLoading(false);
     }
@@ -33,7 +43,13 @@ const FavoritesPage: React.FC = () => {
   const handleRemoveFavorite = async (propertyId: number) => {
     try {
       setRemovingId(propertyId);
-      await authService.removeFromFavorites(propertyId);
+      
+      // Static implementation - remove from localStorage
+      const staticFavorites = JSON.parse(localStorage.getItem('staticFavorites') || '[]');
+      const updatedFavorites = staticFavorites.filter((id: number) => id !== propertyId);
+      localStorage.setItem('staticFavorites', JSON.stringify(updatedFavorites));
+      
+      // Update UI
       setFavorites(prev => prev.filter(property => property.id !== propertyId));
     } catch (error) {
       console.error('Error removing favorite:', error);
@@ -46,22 +62,23 @@ const FavoritesPage: React.FC = () => {
     window.location.href = `/properties/${propertyId}`;
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Please log in to view your favorites</h2>
-          <button 
-            onClick={() => window.location.href = '/login'}
-            className="btn-primary"
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Static implementation - no auth required for now
+  // if (!isAuthenticated || authRequired) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+  //       <div className="text-center">
+  //         <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+  //         <h2 className="text-2xl font-bold text-gray-900 mb-4">Please log in to view your favorites</h2>
+  //         <button 
+  //           onClick={() => window.location.href = '/login'}
+  //           className="btn-primary"
+  //         >
+  //           Go to Login
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

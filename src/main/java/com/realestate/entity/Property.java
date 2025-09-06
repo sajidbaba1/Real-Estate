@@ -75,6 +75,10 @@ public class Property {
     
     private String imageUrl;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
+    
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
@@ -176,4 +180,7 @@ public class Property {
     
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public User getOwner() { return owner; }
+    public void setOwner(User owner) { this.owner = owner; }
 }

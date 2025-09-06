@@ -31,7 +31,8 @@ const GoogleMapComponent: React.FC<GoogleMapComponentProps> = ({
 
   useEffect(() => {
     if (ref.current && !map) {
-      const newMap = new google.maps.Map(ref.current, {
+      const mapId = (import.meta as any).env?.VITE_GOOGLE_MAPS_MAP_ID as string | undefined;
+      const options: google.maps.MapOptions = {
         center,
         zoom,
         mapTypeControl: true,
@@ -45,7 +46,13 @@ const GoogleMapComponent: React.FC<GoogleMapComponentProps> = ({
             stylers: [{ visibility: 'off' }],
           },
         ],
-      });
+      };
+
+      if (mapId) {
+        (options as any).mapId = mapId;
+      }
+
+      const newMap = new google.maps.Map(ref.current, options);
       
       setMap(newMap);
       onMapLoad?.(newMap);
@@ -61,25 +68,47 @@ const GoogleMapComponent: React.FC<GoogleMapComponentProps> = ({
 
   useEffect(() => {
     if (map) {
-      // Clear existing markers
+      // Clear existing markers (support both Marker and AdvancedMarkerElement)
       const existingMarkers = (map as any)._markers || [];
-      existingMarkers.forEach((marker: google.maps.Marker) => marker.setMap(null));
+      existingMarkers.forEach((marker: any) => {
+        if (marker && typeof marker.setMap === 'function') {
+          // google.maps.Marker
+          marker.setMap(null);
+        } else if (marker && 'map' in marker) {
+          // google.maps.marker.AdvancedMarkerElement
+          marker.map = null;
+        }
+      });
 
       // Add new markers
       const newMarkers = markers.map((markerData) => {
-        const marker = new google.maps.Marker({
-          position: markerData.position,
-          map,
-          title: markerData.title,
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: '#ef4444',
-            fillOpacity: 1,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
-          },
-        });
+        const Advanced = (google.maps as any).marker?.AdvancedMarkerElement;
+        const mapId = (import.meta as any).env?.VITE_GOOGLE_MAPS_MAP_ID as string | undefined;
+        let marker: any;
+
+        if (Advanced && mapId) {
+          // Use AdvancedMarkerElement when available
+          marker = new Advanced({
+            map,
+            position: markerData.position,
+            title: markerData.title,
+          });
+        } else {
+          // Fallback to classic Marker
+          marker = new google.maps.Marker({
+            position: markerData.position,
+            map,
+            title: markerData.title,
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 8,
+              fillColor: '#ef4444',
+              fillOpacity: 1,
+              strokeColor: '#ffffff',
+              strokeWeight: 2,
+            },
+          });
+        }
 
         if (markerData.info) {
           const infoWindow = new google.maps.InfoWindow({
@@ -91,9 +120,15 @@ const GoogleMapComponent: React.FC<GoogleMapComponentProps> = ({
             `,
           });
 
-          marker.addListener('click', () => {
-            infoWindow.open(map, marker);
-          });
+          if (marker?.addListener) {
+            // Classic Marker
+            marker.addListener('click', () => infoWindow.open(map, marker));
+          } else if (Advanced && mapId) {
+            // AdvancedMarkerElement uses 'gmp-click' and open with anchor option
+            (marker as any).addListener('gmp-click', () =>
+              infoWindow.open({ map, anchor: marker })
+            );
+          }
         }
 
         return marker;
@@ -153,7 +188,7 @@ const GoogleMap: React.FC<MapProps> = (props) => {
   }
 
   return (
-    <Wrapper apiKey={apiKey} render={render} libraries={['places']}>
+    <Wrapper apiKey={apiKey} render={render} libraries={['places', 'marker']}>
       <GoogleMapComponent {...props} />
     </Wrapper>
   );

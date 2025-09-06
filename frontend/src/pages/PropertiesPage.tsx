@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, X, MapPin, DollarSign, Bed, Bath, Map, List } from 'lucide-react';
+import { Filter, X, MapPin, DollarSign, Bed, Bath, Map, List, Search } from 'lucide-react';
 import PropertyCard from '../components/PropertyCard';
 import PropertiesMapView from '../components/PropertiesMapView';
 import { propertyApi } from '../services/api';
 import { Property, PropertyType, PropertyStatus } from '../types/Property';
+import { sampleProperties } from '../data/sampleProperties';
 
 const PropertiesPage: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -14,6 +15,7 @@ const PropertiesPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
   
   // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     minPrice: '',
     maxPrice: '',
@@ -30,14 +32,22 @@ const PropertiesPage: React.FC = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [properties, filters]);
+  }, [properties, filters, searchQuery]);
 
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const data = await propertyApi.getAllProperties();
-      setProperties(data);
-      setFilteredProperties(data);
+      // Static implementation - combine sample data with user-added properties
+      // const data = await propertyApi.getAllProperties();
+      
+      // Get user-added properties from localStorage
+      const userProperties = JSON.parse(localStorage.getItem('userProperties') || '[]');
+      
+      // Combine sample properties with user-added properties
+      const allProperties = [...sampleProperties, ...userProperties];
+      
+      setProperties(allProperties);
+      setFilteredProperties(allProperties);
     } catch (error) {
       console.error('Error fetching properties:', error);
     } finally {
@@ -47,6 +57,19 @@ const PropertiesPage: React.FC = () => {
 
   const applyFilters = () => {
     let result = [...properties];
+    
+    // Apply search query first
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(property => 
+        property.title.toLowerCase().includes(query) ||
+        property.description.toLowerCase().includes(query) ||
+        property.city.toLowerCase().includes(query) ||
+        property.state.toLowerCase().includes(query) ||
+        property.address.toLowerCase().includes(query) ||
+        property.propertyType.toLowerCase().replace('_', ' ').includes(query)
+      );
+    }
     
     if (filters.minPrice) {
       const minPrice = parseFloat(filters.minPrice);
@@ -94,6 +117,7 @@ const PropertiesPage: React.FC = () => {
   };
 
   const clearFilters = () => {
+    setSearchQuery('');
     setFilters({
       minPrice: '',
       maxPrice: '',
@@ -105,7 +129,7 @@ const PropertiesPage: React.FC = () => {
     });
   };
 
-  const hasActiveFilters = Object.values(filters).some(value => value !== '');
+  const hasActiveFilters = Object.values(filters).some(value => value !== '') || searchQuery.trim() !== '';
 
   const handlePropertyClick = (property: Property) => {
     window.location.href = `/properties/${property.id}`;
@@ -117,6 +141,45 @@ const PropertiesPage: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Properties</h1>
           <p className="text-gray-600">Browse our extensive collection of properties</p>
+        </div>
+
+        {/* Enhanced Search Bar */}
+        <div className="mb-8">
+          <div className="relative max-w-2xl mx-auto">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full pl-12 pr-4 py-4 text-lg border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white placeholder-gray-500 transition-all duration-200"
+              placeholder="Search by location, property type, or keywords..."
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+          
+          {/* Quick Search Suggestions */}
+          {!searchQuery && (
+            <div className="flex flex-wrap justify-center gap-2 mt-4">
+              {['New York', 'Los Angeles', 'Apartment', 'House', 'Condo', 'For Sale', 'For Rent'].map((suggestion) => (
+                <button
+                  key={suggestion}
+                  onClick={() => setSearchQuery(suggestion)}
+                  className="px-4 py-2 text-sm bg-white border border-gray-200 rounded-full hover:border-primary-300 hover:bg-primary-50 transition-all duration-200 text-gray-600 hover:text-primary-600"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Filters Section */}
