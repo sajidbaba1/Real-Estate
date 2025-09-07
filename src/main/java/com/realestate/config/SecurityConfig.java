@@ -38,7 +38,11 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/properties/**").permitAll()
+                // Public property endpoints
+                .requestMatchers("/api/properties/public/**").permitAll()
+                .requestMatchers("/api/properties/approved").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/properties/**").permitAll()
+                // Other endpoints require authentication
                 .requestMatchers("/api/users/profile").authenticated()
                 .anyRequest().authenticated()
             )
@@ -55,7 +59,7 @@ public class SecurityConfig {
             "http://localhost:5175",
             "https://real-estate-alpha-sandy.vercel.app"
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         
