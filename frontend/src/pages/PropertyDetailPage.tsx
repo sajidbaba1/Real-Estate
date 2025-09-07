@@ -19,6 +19,7 @@ import { Property, PropertyStatus } from '../types/Property';
 import GoogleMap from '../components/GoogleMap';
 import { GeocodingService } from '../services/geocoding';
 import { sampleProperties } from '../data/sampleProperties';
+import { useAuth } from '../contexts/AuthContext';
 
 const PropertyDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +28,15 @@ const PropertyDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+  const { isAuthenticated, token, user } = useAuth();
+
+  const RAW_BASE = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:8080';
+  const base = (RAW_BASE as string).replace(/\/+$/, '');
+  const apiBase = base.endsWith('/api') ? base : `${base}/api`;
+
+  const [inqAmount, setInqAmount] = useState('');
+  const [inqMessage, setInqMessage] = useState('');
+  const [inqBusy, setInqBusy] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -60,6 +70,42 @@ const PropertyDetailPage: React.FC = () => {
       setError('Failed to load property details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateInquiry = async () => {
+    if (!property) return;
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    try {
+      setInqBusy(true);
+      const res = await fetch(`${apiBase}/sales/inquiries`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          propertyId: property.id,
+          amount: inqAmount ? Number(inqAmount) : null,
+          message: inqMessage,
+        }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Inquiry failed (${res.status})`);
+      }
+      const inquiry = await res.json();
+      // Reset form and navigate to inquiry detail
+      setInqAmount('');
+      setInqMessage('');
+      navigate(`/sales/inquiries/${inquiry.id}`);
+    } catch (e: any) {
+      alert(e.message || 'Failed to create inquiry');
+    } finally {
+      setInqBusy(false);
     }
   };
 
@@ -257,6 +303,36 @@ const PropertyDetailPage: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* Inquire Now (For Sale) */}
+            {property.status === PropertyStatus.FOR_SALE && (
+              <div className="mb-8 bg-gray-50 rounded-xl p-4">
+                <h3 className="text-lg font-semibold mb-2">Interested? Inquire now</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input
+                    className="input-field"
+                    placeholder="Your offer amount (optional)"
+                    value={inqAmount}
+                    onChange={(e) => setInqAmount(e.target.value)}
+                  />
+                  <input
+                    className="input-field md:col-span-2"
+                    placeholder="Message (optional)"
+                    value={inqMessage}
+                    onChange={(e) => setInqMessage(e.target.value)}
+                  />
+                </div>
+                <div className="mt-3">
+                  <button
+                    onClick={handleCreateInquiry}
+                    disabled={inqBusy}
+                    className="btn-primary disabled:opacity-50"
+                  >
+                    {isAuthenticated ? (inqBusy ? 'Sending...' : 'Inquire Now') : 'Login to Inquire'}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Property Details */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
