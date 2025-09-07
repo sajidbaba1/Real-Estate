@@ -71,7 +71,7 @@ public class PaymentController {
             orderRequest.put("payment_capture", 1);
             orderRequest.put("receipt", "inq_" + inq.getId());
 
-            Order order = client.Orders.create(orderRequest);
+            Order order = client.orders.create(orderRequest);
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("orderId", order.get("id"));
