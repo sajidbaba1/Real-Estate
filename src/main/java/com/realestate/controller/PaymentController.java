@@ -5,8 +5,10 @@ import com.razorpay.RazorpayClient;
 import com.razorpay.Utils;
 import com.realestate.entity.Property;
 import com.realestate.entity.SaleInquiry;
+import com.realestate.entity.User;
 import com.realestate.repository.PropertyRepository;
 import com.realestate.repository.SaleInquiryRepository;
+import com.realestate.repository.UserRepository;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -14,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -32,10 +34,12 @@ public class PaymentController {
 
     private final SaleInquiryRepository inquiryRepo;
     private final PropertyRepository propertyRepo;
+    private final WalletController walletController;
 
-    public PaymentController(SaleInquiryRepository inquiryRepo, PropertyRepository propertyRepo) {
+    public PaymentController(SaleInquiryRepository inquiryRepo, PropertyRepository propertyRepo, WalletController walletController) {
         this.inquiryRepo = inquiryRepo;
         this.propertyRepo = propertyRepo;
+        this.walletController = walletController;
     }
 
     public static class CreateOrderRequest {
@@ -112,6 +116,14 @@ public class PaymentController {
             Property property = inq.getProperty();
             property.setStatus(Property.PropertyStatus.SOLD);
             propertyRepo.save(property);
+
+            // Deduct token amount from customer's wallet (optional, if wallet used for record-keeping)
+            try {
+                BigDecimal tokenAmount = new BigDecimal("10000"); // Default token amount (INR)
+                walletController.deductMoney(inq.getCustomer().getId(), tokenAmount,
+                        "Token payment for property booking - Inquiry #" + inq.getId(),
+                        req.razorpay_payment_id);
+            } catch (Exception ignored) {}
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("status", "success");

@@ -14,11 +14,9 @@ import {
   Mail,
   Share2
 } from 'lucide-react';
-import { propertyApi } from '../services/api';
 import { Property, PropertyStatus } from '../types/Property';
 import GoogleMap from '../components/GoogleMap';
 import { GeocodingService } from '../services/geocoding';
-import { sampleProperties } from '../data/sampleProperties';
 import { useAuth } from '../contexts/AuthContext';
 
 const PropertyDetailPage: React.FC = () => {
@@ -47,24 +45,19 @@ const PropertyDetailPage: React.FC = () => {
   const fetchProperty = async (propertyId: number) => {
     try {
       setLoading(true);
-      
-      // Static implementation - get from sample data and localStorage
-      const userProperties = JSON.parse(localStorage.getItem('userProperties') || '[]');
-      const allProperties = [...sampleProperties, ...userProperties];
-      const data = allProperties.find(p => p.id === propertyId);
-      
-      if (!data) {
-        setError('Property not found');
+      const res = await fetch(`${apiBase}/properties/${propertyId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) {
+        setError(res.status === 404 ? 'Property not found' : `Failed to load property (${res.status})`);
         return;
       }
-      
+      const data: Property = await res.json();
       setProperty(data);
-      
-      // Get coordinates for the property location
       await getPropertyCoordinates(data);
-      
-      // TODO: Replace with API call when backend is ready
-      // const data = await propertyApi.getPropertyById(propertyId);
     } catch (err) {
       console.error('Error fetching property:', err);
       setError('Failed to load property details');
