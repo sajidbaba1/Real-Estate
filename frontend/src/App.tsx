@@ -20,6 +20,9 @@ import AdminPropertiesApprovalPage from './pages/AdminPropertiesApprovalPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import MyListingsPage from './pages/MyListingsPage';
 import ManagePgPage from './pages/ManagePgPage';
+import ClientSaleInquiriesPage from './pages/ClientSaleInquiriesPage';
+import InquiryDetailPage from './pages/InquiryDetailPage';
+import OwnerSaleInquiriesPage from './pages/OwnerSaleInquiriesPage';
 
 function App() {
   return (
@@ -63,6 +66,23 @@ function App() {
             <Route path="/favorites" element={
               <ProtectedRoute>
                 <FavoritesPage />
+              </ProtectedRoute>
+            } />
+
+            {/* Sales: inquiries */}
+            <Route path="/sales/inquiries" element={
+              <ProtectedRoute>
+                <ClientSaleInquiriesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/sales/inquiries/owner" element={
+              <ProtectedRoute allowedRoles={['ADMIN','AGENT']}>
+                <OwnerSaleInquiriesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/sales/inquiries/:id" element={
+              <ProtectedRoute>
+                <InquiryDetailPage />
               </ProtectedRoute>
             } />
             

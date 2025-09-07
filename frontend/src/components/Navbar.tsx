@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, Building, Plus, Search, User, Menu, X, LogOut, LogIn, Heart, UserCircle, Shield, Briefcase, Users, BarChart3, MapPin, ListChecks } from 'lucide-react';
+import { Home, Building, Plus, Search, User, Menu, X, LogOut, LogIn, Heart, UserCircle, Shield, Briefcase, Users, BarChart3, MapPin, ListChecks, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navbar: React.FC = () => {
@@ -58,17 +58,20 @@ const Navbar: React.FC = () => {
           { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
           { path: '/admin/properties', label: 'Approvals', icon: ListChecks },
           { path: '/admin/locations', label: 'Locations', icon: MapPin },
+          { path: '/sales/inquiries/owner', label: 'Sale Inquiries', icon: MessageSquare },
         ];
       case 'AGENT':
         return [
           ...baseUserItems,
           { path: '/favorites', label: 'Favorites', icon: Heart },
+          { path: '/sales/inquiries/owner', label: 'Sale Inquiries', icon: MessageSquare },
         ];
       case 'USER':
       default:
         return [
           ...baseUserItems,
           { path: '/favorites', label: 'Favorites', icon: Heart },
+          { path: '/sales/inquiries', label: 'My Sale Inquiries', icon: MessageSquare },
         ];
     }
   };
