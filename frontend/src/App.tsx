@@ -16,6 +16,7 @@ import ClientDashboard from './pages/ClientDashboard';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminAnalyticsPage from './pages/AdminAnalyticsPage';
 import AdminLocationsPage from './pages/AdminLocationsPage';
+import AdminPropertiesApprovalPage from './pages/AdminPropertiesApprovalPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import MyListingsPage from './pages/MyListingsPage';
 
@@ -90,6 +91,11 @@ function App() {
             <Route path="/admin/locations" element={
               <ProtectedRoute allowedRoles={['ADMIN']}>
                 <AdminLocationsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/properties" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminPropertiesApprovalPage />
               </ProtectedRoute>
             } />
           </Routes>
