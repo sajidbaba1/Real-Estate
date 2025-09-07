@@ -23,6 +23,19 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     
     List<Property> findByOwner_Id(Long ownerId);
     
+    // Approval workflow helpers
+    List<Property> findByApprovalStatus(Property.ApprovalStatus status);
+
+    List<Property> findByApprovalStatusAndOwner_Id(Property.ApprovalStatus status, Long ownerId);
+
+    List<Property> findByApprovalStatusAndStatus(Property.ApprovalStatus approvalStatus,
+                                                 Property.PropertyStatus status);
+
+    List<Property> findByLocation_IdAndApprovalStatus(Long locationId, Property.ApprovalStatus status);
+
+    @Query("SELECT p FROM Property p WHERE p.approvalStatus = com.realestate.entity.Property$ApprovalStatus.APPROVED")
+    List<Property> findAllApproved();
+
     @Query("SELECT p FROM Property p WHERE p.price BETWEEN :minPrice AND :maxPrice")
     List<Property> findByPriceRange(@Param("minPrice") BigDecimal minPrice, @Param("maxPrice") BigDecimal maxPrice);
     

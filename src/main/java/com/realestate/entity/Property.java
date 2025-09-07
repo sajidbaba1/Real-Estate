@@ -73,6 +73,29 @@ public class Property {
     @Column(nullable = false)
     private PropertyStatus status;
     
+    // Property approval status
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ApprovalStatus approvalStatus = ApprovalStatus.PENDING;
+    
+    // Location relationship
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private Location location;
+    
+    // Listing type (SALE, RENT, PG)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ListingType listingType;
+    
+    // PG specific fields
+    @Column(name = "is_pg_listing")
+    private Boolean isPgListing = false;
+    
+    // Price type (ONE_TIME for sale, MONTHLY for rent)
+    @Enumerated(EnumType.STRING)
+    private PriceType priceType;
+    
     private String imageUrl;
     
     @ManyToOne(fetch = FetchType.LAZY)
@@ -86,11 +109,23 @@ public class Property {
     private LocalDateTime updatedAt;
     
     public enum PropertyType {
-        HOUSE, APARTMENT, CONDO, TOWNHOUSE, VILLA, LAND
+        HOUSE, APARTMENT, CONDO, TOWNHOUSE, VILLA, LAND, FLAT, PG
     }
     
     public enum PropertyStatus {
         FOR_SALE, FOR_RENT, SOLD, RENTED
+    }
+    
+    public enum ApprovalStatus {
+        PENDING, APPROVED, REJECTED
+    }
+    
+    public enum ListingType {
+        SALE, RENT, PG
+    }
+    
+    public enum PriceType {
+        ONE_TIME, MONTHLY
     }
     
     @PrePersist
@@ -183,4 +218,19 @@ public class Property {
     
     public User getOwner() { return owner; }
     public void setOwner(User owner) { this.owner = owner; }
+    
+    public ApprovalStatus getApprovalStatus() { return approvalStatus; }
+    public void setApprovalStatus(ApprovalStatus approvalStatus) { this.approvalStatus = approvalStatus; }
+    
+    public Location getLocation() { return location; }
+    public void setLocation(Location location) { this.location = location; }
+    
+    public ListingType getListingType() { return listingType; }
+    public void setListingType(ListingType listingType) { this.listingType = listingType; }
+    
+    public Boolean getIsPgListing() { return isPgListing; }
+    public void setIsPgListing(Boolean isPgListing) { this.isPgListing = isPgListing; }
+    
+    public PriceType getPriceType() { return priceType; }
+    public void setPriceType(PriceType priceType) { this.priceType = priceType; }
 }

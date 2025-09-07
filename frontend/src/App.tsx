@@ -15,6 +15,7 @@ import AgentDashboard from './pages/AgentDashboard';
 import ClientDashboard from './pages/ClientDashboard';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminAnalyticsPage from './pages/AdminAnalyticsPage';
+import AdminLocationsPage from './pages/AdminLocationsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import MyListingsPage from './pages/MyListingsPage';
 
@@ -84,6 +85,11 @@ function App() {
             <Route path="/admin/analytics" element={
               <ProtectedRoute allowedRoles={['ADMIN']}>
                 <AdminAnalyticsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/locations" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminLocationsPage />
               </ProtectedRoute>
             } />
           </Routes>

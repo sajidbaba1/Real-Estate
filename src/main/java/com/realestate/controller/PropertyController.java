@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,6 +32,13 @@ public class PropertyController {
     @GetMapping
     public ResponseEntity<List<Property>> getAllProperties() {
         List<Property> properties = propertyRepository.findAll();
+        return ResponseEntity.ok(properties);
+    }
+
+    // Public: Get only APPROVED properties (for marketplace visibility)
+    @GetMapping("/approved")
+    public ResponseEntity<List<Property>> getApprovedProperties() {
+        List<Property> properties = propertyRepository.findAllApproved();
         return ResponseEntity.ok(properties);
     }
 
@@ -133,6 +141,60 @@ public class PropertyController {
     public ResponseEntity<List<Property>> getPropertiesByStatus(@PathVariable Property.PropertyStatus status) {
         List<Property> properties = propertyRepository.findByStatus(status);
         return ResponseEntity.ok(properties);
+    }
+
+    // ===== Approval Workflow (ADMIN only) =====
+
+    // ADMIN: List pending properties for review
+    @GetMapping("/approval/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Property>> getPendingForApproval() {
+        List<Property> list = propertyRepository.findByApprovalStatus(Property.ApprovalStatus.PENDING);
+        return ResponseEntity.ok(list);
+    }
+
+    // ADMIN: List approved properties (admin view)
+    @GetMapping("/approval/approved")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Property>> getApprovedAdmin() {
+        List<Property> list = propertyRepository.findByApprovalStatus(Property.ApprovalStatus.APPROVED);
+        return ResponseEntity.ok(list);
+    }
+
+    // ADMIN: List rejected properties (admin view)
+    @GetMapping("/approval/rejected")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Property>> getRejectedAdmin() {
+        List<Property> list = propertyRepository.findByApprovalStatus(Property.ApprovalStatus.REJECTED);
+        return ResponseEntity.ok(list);
+    }
+
+    // ADMIN: Approve property
+    @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> approveProperty(@PathVariable Long id) {
+        Optional<Property> optionalProperty = propertyRepository.findById(id);
+        if (optionalProperty.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Property p = optionalProperty.get();
+        p.setApprovalStatus(Property.ApprovalStatus.APPROVED);
+        propertyRepository.save(p);
+        return ResponseEntity.ok(p);
+    }
+
+    // ADMIN: Reject property
+    @PatchMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> rejectProperty(@PathVariable Long id) {
+        Optional<Property> optionalProperty = propertyRepository.findById(id);
+        if (optionalProperty.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Property p = optionalProperty.get();
+        p.setApprovalStatus(Property.ApprovalStatus.REJECTED);
+        propertyRepository.save(p);
+        return ResponseEntity.ok(p);
     }
 
     // Search properties by type
