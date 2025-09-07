@@ -42,9 +42,17 @@ public class PropertyController {
         return ResponseEntity.ok(properties);
     }
 
-    // Get property by ID
+    // Get property by ID (public access)
     @GetMapping("/{id}")
     public ResponseEntity<Property> getPropertyById(@PathVariable Long id) {
+        Optional<Property> property = propertyRepository.findById(id);
+        return property.map(ResponseEntity::ok)
+                      .orElse(ResponseEntity.notFound().build());
+    }
+
+    // Public property detail endpoint (no auth required)
+    @GetMapping("/public/{id}")
+    public ResponseEntity<Property> getPublicPropertyById(@PathVariable Long id) {
         Optional<Property> property = propertyRepository.findById(id);
         return property.map(ResponseEntity::ok)
                       .orElse(ResponseEntity.notFound().build());

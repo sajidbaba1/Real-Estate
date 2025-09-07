@@ -45,10 +45,9 @@ const PropertyDetailPage: React.FC = () => {
   const fetchProperty = async (propertyId: number) => {
     try {
       setLoading(true);
-      const res = await fetch(`${apiBase}/properties/${propertyId}`, {
+      const res = await fetch(`${apiBase}/properties/public/${propertyId}`, {
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
       if (!res.ok) {
