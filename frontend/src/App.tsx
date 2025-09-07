@@ -23,6 +23,8 @@ import ManagePgPage from './pages/ManagePgPage';
 import ClientSaleInquiriesPage from './pages/ClientSaleInquiriesPage';
 import InquiryDetailPage from './pages/InquiryDetailPage';
 import OwnerSaleInquiriesPage from './pages/OwnerSaleInquiriesPage';
+import WalletPage from './pages/WalletPage';
+import MyBookingsPage from './pages/MyBookingsPage';
 
 function App() {
   return (
@@ -83,6 +85,18 @@ function App() {
             <Route path="/sales/inquiries/:id" element={
               <ProtectedRoute>
                 <InquiryDetailPage />
+              </ProtectedRoute>
+            } />
+
+            {/* Wallet and Bookings */}
+            <Route path="/wallet" element={
+              <ProtectedRoute>
+                <WalletPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/bookings" element={
+              <ProtectedRoute>
+                <MyBookingsPage />
               </ProtectedRoute>
             } />
             
