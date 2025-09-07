@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trash2, Loader2, Home } from 'lucide-react';
+import { Trash2, Loader2, Home, BedSingle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Property {
@@ -17,6 +17,7 @@ interface Property {
   propertyType: string;
   status: string;
   imageUrl?: string;
+  isPgListing?: boolean;
 }
 
 const MyListingsPage: React.FC = () => {
@@ -135,6 +136,13 @@ const MyListingsPage: React.FC = () => {
                     </button>
                   )}
                 </div>
+                {(user?.role === 'ADMIN' || user?.role === 'AGENT') && p.isPgListing && (
+                  <div className="mt-3">
+                    <a href={`/properties/${p.id}/manage-pg`} className="inline-flex items-center px-3 py-2 rounded bg-primary-600 text-white hover:bg-primary-700">
+                      <BedSingle className="w-4 h-4 mr-2" /> Manage PG
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           ))}

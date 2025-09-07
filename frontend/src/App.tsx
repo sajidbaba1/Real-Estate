@@ -19,6 +19,7 @@ import AdminLocationsPage from './pages/AdminLocationsPage';
 import AdminPropertiesApprovalPage from './pages/AdminPropertiesApprovalPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import MyListingsPage from './pages/MyListingsPage';
+import ManagePgPage from './pages/ManagePgPage';
 
 function App() {
   return (
@@ -47,6 +48,11 @@ function App() {
             <Route path="/my-listings" element={
               <ProtectedRoute allowedRoles={['ADMIN', 'AGENT']}>
                 <MyListingsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/properties/:id/manage-pg" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'AGENT']}>
+                <ManagePgPage />
               </ProtectedRoute>
             } />
             <Route path="/profile" element={
