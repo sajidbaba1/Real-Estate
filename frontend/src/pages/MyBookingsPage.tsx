@@ -49,8 +49,22 @@ const MyBookingsPage: React.FC = () => {
   const loadBookings = async () => {
     try {
       setLoading(true);
+      if (!token) {
+        console.log('No token available for bookings');
+        return;
+      }
       const res = await fetch(`${apiBase}/bookings/my`, { headers });
-      if (!res.ok) throw new Error(`Failed to load bookings (${res.status})`);
+      if (!res.ok) {
+        if (res.status === 401) {
+          console.log('Authentication required for bookings');
+          return;
+        }
+        if (res.status === 403) {
+          console.log('Not authorized to view bookings');
+          return;
+        }
+        throw new Error(`Failed to load bookings (${res.status})`);
+      }
       const data = await res.json();
       setRentBookings(data.rentBookings || []);
       setPgBookings(data.pgBookings || []);
@@ -63,8 +77,15 @@ const MyBookingsPage: React.FC = () => {
 
   const loadPendingPayments = async () => {
     try {
+      if (!token) return;
       const res = await fetch(`${apiBase}/bookings/payments/my`, { headers });
-      if (!res.ok) throw new Error(`Failed to load payments (${res.status})`);
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          console.log('Not authorized to view payments');
+          return;
+        }
+        throw new Error(`Failed to load payments (${res.status})`);
+      }
       setPendingPayments(await res.json());
     } catch (e: any) {
       console.error('Failed to load payments:', e);
@@ -92,10 +113,12 @@ const MyBookingsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadBookings();
-    loadPendingPayments();
+    if (token) {
+      loadBookings();
+      loadPendingPayments();
+    }
     /* eslint-disable-next-line */
-  }, []);
+  }, [token]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

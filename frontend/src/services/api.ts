@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Property, PropertyFilters } from '../types/Property';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8888/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -10,10 +10,20 @@ const api = axios.create({
   },
 });
 
+// Attach JWT token if available
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers = config.headers || {};
+    (config.headers as any).Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const propertyApi = {
   // Get all properties
   getAllProperties: async (): Promise<Property[]> => {
-    const response = await api.get('/properties');
+    const response = await api.get('/properties/approved');
     return response.data;
   },
 
@@ -58,6 +68,23 @@ export const propertyApi = {
     return response.data;
   },
 
+  // Claim ownership of a property (ADMIN/AGENT only)
+  claimOwnership: async (id: number): Promise<Property> => {
+    const response = await api.patch(`/properties/${id}/assign-owner`);
+    return response.data;
+  },
+
+  // Counts
+  getTotalCount: async (): Promise<number> => {
+    const response = await api.get('/properties/count');
+    return response.data.total as number;
+  },
+
+  getApprovedCount: async (): Promise<number> => {
+    const response = await api.get('/properties/approved/count');
+    return response.data.approved as number;
+  },
+
   // Get filter metadata
   getCities: async (): Promise<string[]> => {
     const response = await api.get('/properties/cities');
@@ -71,6 +98,12 @@ export const propertyApi = {
 
   getPriceRange: async (): Promise<{ minPrice: number; maxPrice: number }> => {
     const response = await api.get('/properties/price-range');
+    return response.data;
+  },
+
+  // Claim ownership of a property (ADMIN/AGENT only)
+  claimOwnership: async (id: number): Promise<Property> => {
+    const response = await api.patch(`/properties/${id}/assign-owner`);
     return response.data;
   },
 };

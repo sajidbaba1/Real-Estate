@@ -3,9 +3,12 @@ package com.realestate.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "wallet_transactions")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class WalletTransaction {
 
     @Id
@@ -14,6 +17,7 @@ public class WalletTransaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "wallet_id", nullable = false)
+    @JsonIgnore
     private Wallet wallet;
 
     @Enumerated(EnumType.STRING)

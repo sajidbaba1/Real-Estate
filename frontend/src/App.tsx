@@ -2,10 +2,13 @@ import { Routes, Route } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navbar';
+import AdminRagChatbot from './components/AdminRagChatbot';
+import EnhancedPropertyAssistant from './components/EnhancedPropertyAssistant';
 import HomePage from './pages/HomePage';
 import PropertiesPage from './pages/PropertiesPage';
 import PropertyDetailPage from './pages/PropertyDetailPage';
 import AddPropertyPage from './pages/AddPropertyPage';
+import EditPropertyPage from './pages/EditPropertyPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
@@ -20,11 +23,13 @@ import AdminPropertiesApprovalPage from './pages/AdminPropertiesApprovalPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import MyListingsPage from './pages/MyListingsPage';
 import ManagePgPage from './pages/ManagePgPage';
-import ClientSaleInquiriesPage from './pages/ClientSaleInquiriesPage';
+import MyInquiriesPage from './pages/MyInquiriesPage';
+import OwnerInquiriesPage from './pages/OwnerInquiriesPage';
+import AdminInquiriesPage from './pages/AdminInquiriesPage';
 import InquiryDetailPage from './pages/InquiryDetailPage';
-import OwnerSaleInquiriesPage from './pages/OwnerSaleInquiriesPage';
 import WalletPage from './pages/WalletPage';
 import MyBookingsPage from './pages/MyBookingsPage';
+import ChatbotWidget from './components/ChatbotWidget';
 
 function App() {
   return (
@@ -50,6 +55,11 @@ function App() {
                 <AddPropertyPage />
               </ProtectedRoute>
             } />
+            <Route path="/edit-property/:id" element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'AGENT']}>
+                <EditPropertyPage />
+              </ProtectedRoute>
+            } />
             <Route path="/my-listings" element={
               <ProtectedRoute allowedRoles={['ADMIN', 'AGENT']}>
                 <MyListingsPage />
@@ -71,20 +81,25 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Sales: inquiries */}
-            <Route path="/sales/inquiries" element={
+            {/* Property Inquiries */}
+            <Route path="/inquiries" element={
               <ProtectedRoute>
-                <ClientSaleInquiriesPage />
+                <MyInquiriesPage />
               </ProtectedRoute>
             } />
-            <Route path="/sales/inquiries/owner" element={
+            <Route path="/inquiries/owner" element={
               <ProtectedRoute allowedRoles={['ADMIN','AGENT']}>
-                <OwnerSaleInquiriesPage />
+                <OwnerInquiriesPage />
               </ProtectedRoute>
             } />
-            <Route path="/sales/inquiries/:id" element={
+            <Route path="/inquiries/:id" element={
               <ProtectedRoute>
                 <InquiryDetailPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/inquiries" element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <AdminInquiriesPage />
               </ProtectedRoute>
             } />
 
@@ -139,6 +154,9 @@ function App() {
               </ProtectedRoute>
             } />
           </Routes>
+          <ChatbotWidget />
+          <AdminRagChatbot />
+          <EnhancedPropertyAssistant />
         </motion.main>
       </div>
     </AuthProvider>

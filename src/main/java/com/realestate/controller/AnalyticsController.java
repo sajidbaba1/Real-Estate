@@ -4,8 +4,11 @@ import com.realestate.entity.User;
 import com.realestate.entity.Property;
 import com.realestate.repository.UserRepository;
 import com.realestate.repository.PropertyRepository;
+import com.realestate.service.AnalyticsService;
+import com.realestate.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,6 +29,54 @@ public class AnalyticsController {
 
     @Autowired
     private PropertyRepository propertyRepository;
+
+    @Autowired
+    private AnalyticsService analyticsService;
+
+    @Autowired
+    private ReportService reportService;
+
+    // Summary KPIs for Admin Analytics
+    @GetMapping("/summary")
+    public ResponseEntity<Map<String, Object>> getSummary() {
+        return ResponseEntity.ok(analyticsService.getSummary());
+    }
+
+    // Simple time series over last N days
+    @GetMapping("/timeseries")
+    public ResponseEntity<Map<String, Object>> getTimeSeries(
+            @RequestParam(defaultValue = "inquiries") String metric,
+            @RequestParam(defaultValue = "30") int rangeDays) {
+        return ResponseEntity.ok(analyticsService.getTimeSeries(metric, rangeDays));
+    }
+
+    // Recent activity feed (inquiries/messages/purchases)
+    @GetMapping("/recent-activity")
+    public ResponseEntity<List<?>> getRecentActivity(@RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(analyticsService.recentInquiries(limit));
+    }
+
+    // Export Analytics PDF
+    @GetMapping(value = "/export/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportPdf() {
+        Map<String, Object> summary = analyticsService.getSummary();
+        byte[] pdf = reportService.buildAnalyticsPdf(summary);
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=analytics-summary.pdf")
+                .body(pdf);
+    }
+
+    // Agent performance leaderboard
+    @GetMapping("/agent-performance")
+    public ResponseEntity<List<Map<String, Object>>> getAgentPerformance() {
+        return ResponseEntity.ok(analyticsService.getAgentPerformance());
+    }
+
+    // Funnel data for Sankey chart
+    @GetMapping("/funnel")
+    public ResponseEntity<Map<String, Object>> getFunnelData() {
+        return ResponseEntity.ok(analyticsService.getFunnelData());
+    }
 
     // Get dashboard statistics
     @GetMapping("/dashboard")

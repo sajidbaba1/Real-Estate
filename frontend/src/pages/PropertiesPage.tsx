@@ -5,7 +5,6 @@ import PropertyCard from '../components/PropertyCard';
 import PropertiesMapView from '../components/PropertiesMapView';
 import { propertyApi } from '../services/api';
 import { Property, PropertyType, PropertyStatus } from '../types/Property';
-import { sampleProperties } from '../data/sampleProperties';
 
 const PropertiesPage: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -37,17 +36,10 @@ const PropertiesPage: React.FC = () => {
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      // Static implementation - combine sample data with user-added properties
-      // const data = await propertyApi.getAllProperties();
-      
-      // Get user-added properties from localStorage
-      const userProperties = JSON.parse(localStorage.getItem('userProperties') || '[]');
-      
-      // Combine sample properties with user-added properties
-      const allProperties = [...sampleProperties, ...userProperties];
-      
-      setProperties(allProperties);
-      setFilteredProperties(allProperties);
+      // Fetch approved properties from backend (public)
+      const data = await propertyApi.getAllProperties();
+      setProperties(data);
+      setFilteredProperties(data);
     } catch (error) {
       console.error('Error fetching properties:', error);
     } finally {

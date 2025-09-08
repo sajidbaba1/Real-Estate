@@ -2,6 +2,8 @@ package com.realestate.seeder;
 
 import com.realestate.entity.Property;
 import com.realestate.repository.PropertyRepository;
+import com.realestate.entity.User;
+import com.realestate.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -13,11 +15,16 @@ public class DataSeeder {
 
     @Autowired
     private PropertyRepository propertyRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
 
     @PostConstruct
     public void seedData() {
         // Check if data already exists
         if (propertyRepository.count() == 0) {
+            // Try to assign an owner to seeded properties (agent demo user if available)
+            User owner = userRepository.findByEmail("agent@demo.com").orElse(null);
             // Create sample properties
             Property property1 = new Property(
                 "Modern Downtown Apartment",
@@ -34,6 +41,9 @@ public class DataSeeder {
                 Property.PropertyStatus.FOR_SALE
             );
             property1.setImageUrl("https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80");
+            property1.setListingType(Property.ListingType.SALE);
+            property1.setPriceType(Property.PriceType.ONE_TIME);
+            if (owner != null) property1.setOwner(owner);
 
             Property property2 = new Property(
                 "Luxury Family Villa",
@@ -50,6 +60,9 @@ public class DataSeeder {
                 Property.PropertyStatus.FOR_SALE
             );
             property2.setImageUrl("https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80");
+            property2.setListingType(Property.ListingType.SALE);
+            property2.setPriceType(Property.PriceType.ONE_TIME);
+            if (owner != null) property2.setOwner(owner);
 
             Property property3 = new Property(
                 "Cozy Studio Apartment",
@@ -66,6 +79,9 @@ public class DataSeeder {
                 Property.PropertyStatus.FOR_RENT
             );
             property3.setImageUrl("https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80");
+            property3.setListingType(Property.ListingType.RENT);
+            property3.setPriceType(Property.PriceType.MONTHLY);
+            if (owner != null) property3.setOwner(owner);
 
             Property property4 = new Property(
                 "Waterfront Condo",
@@ -82,6 +98,9 @@ public class DataSeeder {
                 Property.PropertyStatus.FOR_SALE
             );
             property4.setImageUrl("https://images.unsplash.com/photo-1512917774080-9991f1c4c750?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80");
+            property4.setListingType(Property.ListingType.SALE);
+            property4.setPriceType(Property.PriceType.ONE_TIME);
+            if (owner != null) property4.setOwner(owner);
 
             Property property5 = new Property(
                 "Historic Townhouse",
@@ -98,6 +117,9 @@ public class DataSeeder {
                 Property.PropertyStatus.FOR_SALE
             );
             property5.setImageUrl("https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80");
+            property5.setListingType(Property.ListingType.SALE);
+            property5.setPriceType(Property.PriceType.ONE_TIME);
+            if (owner != null) property5.setOwner(owner);
 
             Property property6 = new Property(
                 "Mountain View Cabin",
@@ -114,6 +136,9 @@ public class DataSeeder {
                 Property.PropertyStatus.FOR_RENT
             );
             property6.setImageUrl("https://images.unsplash.com/photo-1502005097973-6a7082348e28?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80");
+            property6.setListingType(Property.ListingType.RENT);
+            property6.setPriceType(Property.PriceType.MONTHLY);
+            if (owner != null) property6.setOwner(owner);
 
             // Save properties to database
             propertyRepository.save(property1);

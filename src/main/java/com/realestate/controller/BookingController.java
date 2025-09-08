@@ -30,6 +30,7 @@ public class BookingController {
     @Autowired private PgBedRepository pgBedRepo;
     @Autowired private UserRepository userRepo;
     @Autowired private WalletController walletController;
+    @Autowired private BookingNotificationRepository notificationRepo;
 
     // DTOs
     public static class CreateRentBookingRequest {
@@ -79,15 +80,11 @@ public class BookingController {
         booking.setEndDate(req.endDate);
         booking.setMonthlyRent(req.monthlyRent);
         booking.setSecurityDeposit(req.securityDeposit);
-        booking.setStatus(RentBooking.BookingStatus.ACTIVE);
+        booking.setStatus(RentBooking.BookingStatus.PENDING_APPROVAL);
         booking = rentBookingRepo.save(booking);
 
-        // Update property status
-        property.setStatus(Property.PropertyStatus.RENTED);
-        propertyRepo.save(property);
-
-        // Generate first monthly payment
-        generateMonthlyPayment(booking, null);
+        // Property status will be updated to RENTED only after approval
+        // Don't generate payment until booking is approved
 
         return ResponseEntity.status(HttpStatus.CREATED).body(booking);
     }

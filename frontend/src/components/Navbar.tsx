@@ -1,14 +1,80 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, Building, Plus, Search, User, Menu, X, LogOut, LogIn, Heart, UserCircle, Shield, Briefcase, Users, BarChart3, MapPin, ListChecks, MessageSquare, Wallet, Calendar } from 'lucide-react';
+import { Home, Building, Plus, Search, User, Menu, X, LogOut, LogIn, Heart, UserCircle, Shield, Briefcase, Users, BarChart3, MapPin, ListChecks, MessageSquare, Wallet, Calendar, Bell } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const location = useLocation();
-  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout, token } = useAuth();
+
+  // Notifications state
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [recentNotifs, setRecentNotifs] = useState<any[]>([]);
+
+  const RAW_BASE = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:8888';
+  const base = (RAW_BASE as string).replace(/\/+$/, '');
+  const apiBase = base.endsWith('/api') ? base : `${base}/api`;
+  const headers = useMemo(() => ({
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+  }), [token]);
+
+  const fetchUnread = async () => {
+    // Avoid firing without a valid token to prevent 401/403
+    if (!isAuthenticated || !token) return;
+    try {
+      const res = await fetch(`${apiBase}/notifications/unread-count`, { headers });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          // Likely an invalid/expired token or missing auth; user may need to re-login
+          console.warn('Notifications unread-count request not authorized. Status:', res.status);
+        }
+        return;
+      }
+      const data = await res.json();
+      setUnreadCount(data.unread || 0);
+    } catch (_) {}
+  };
+
+  const fetchRecent = async () => {
+    // Avoid firing without a valid token to prevent 401/403
+    if (!isAuthenticated || !token) return;
+    try {
+      const res = await fetch(`${apiBase}/notifications/recent`, { headers });
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          console.warn('Notifications recent request not authorized. Status:', res.status);
+        }
+        return;
+      }
+      const list = await res.json();
+      setRecentNotifs(Array.isArray(list) ? list.slice(0, 8) : []);
+    } catch (_) {}
+  };
+
+  const markRead = async (id: number) => {
+    try {
+      if (!isAuthenticated || !token) return;
+      await fetch(`${apiBase}/notifications/${id}/read`, { method: 'PATCH', headers });
+      await fetchUnread();
+      await fetchRecent();
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    // Wait until both auth and token are available
+    if (!isAuthenticated || !token) return;
+    fetchUnread();
+    fetchRecent();
+    const iv = setInterval(fetchUnread, 30000);
+    return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, token]);
 
   // Role-based navigation items
   const getNavItems = () => {
@@ -58,20 +124,21 @@ const Navbar: React.FC = () => {
           { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
           { path: '/admin/properties', label: 'Approvals', icon: ListChecks },
           { path: '/admin/locations', label: 'Locations', icon: MapPin },
-          { path: '/sales/inquiries/owner', label: 'Sale Inquiries', icon: MessageSquare },
+          { path: '/admin/inquiries', label: 'All Inquiries', icon: MessageSquare },
+          { path: '/inquiries/owner', label: 'Property Inquiries', icon: MessageSquare },
         ];
       case 'AGENT':
         return [
           ...baseUserItems,
           { path: '/favorites', label: 'Favorites', icon: Heart },
-          { path: '/sales/inquiries/owner', label: 'Sale Inquiries', icon: MessageSquare },
+          { path: '/inquiries/owner', label: 'Property Inquiries', icon: MessageSquare },
         ];
       case 'USER':
       default:
         return [
           ...baseUserItems,
           { path: '/favorites', label: 'Favorites', icon: Heart },
-          { path: '/sales/inquiries', label: 'My Sale Inquiries', icon: MessageSquare },
+          { path: '/inquiries', label: 'My Inquiries', icon: MessageSquare },
           { path: '/wallet', label: 'My Wallet', icon: Wallet },
           { path: '/bookings', label: 'My Bookings', icon: Calendar },
         ];
@@ -128,6 +195,39 @@ const Navbar: React.FC = () => {
             <button className="p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
               <Search className="w-5 h-5" />
             </button>
+            {isAuthenticated && (
+              <div className="relative">
+                <button
+                  onClick={async () => { setNotifOpen(v => !v); if (!notifOpen) { await fetchRecent(); } }}
+                  className="relative p-2 text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                  aria-label="Notifications"
+                >
+                  <Bell className="w-5 h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 text-[10px] bg-red-600 text-white rounded-full px-1.5 py-0.5">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                  )}
+                </button>
+                {notifOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-100 py-2 z-50">
+                    <div className="px-4 py-2 text-sm font-semibold text-gray-700 border-b">Notifications</div>
+                    {recentNotifs.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-sm text-gray-500">No notifications</div>
+                    ) : (
+                      <ul className="max-h-96 overflow-auto">
+                        {recentNotifs.map((n: any) => (
+                          <li key={n.id} className={`px-4 py-3 text-sm hover:bg-gray-50 cursor-pointer ${n.read ? 'text-gray-600' : 'text-gray-900'}`}
+                              onClick={async () => { await markRead(n.id); setNotifOpen(false); if (n.link) navigate(n.link); }}>
+                            <div className="font-medium">{n.title}</div>
+                            {n.body && <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.body}</div>}
+                            <div className="mt-1 text-[11px] text-gray-400">{new Date(n.createdAt).toLocaleString()}</div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             
             {isAuthenticated ? (
               <div className="relative">
@@ -160,7 +260,7 @@ const Navbar: React.FC = () => {
                       );
                     })}
                     <button
-                      onClick={() => { setIsUserMenuOpen(false); logout(); }}
+                      onClick={() => { setIsUserMenuOpen(false); logout(); navigate('/login'); }}
                       className="w-full text-left flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
                       <LogOut className="w-4 h-4" />
@@ -263,6 +363,7 @@ const Navbar: React.FC = () => {
                     onClick={() => {
                       logout();
                       setIsMenuOpen(false);
+                      navigate('/login');
                     }}
                     className="flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200 mt-2"
                   >

@@ -8,6 +8,7 @@ import com.realestate.repository.WalletRepository;
 import com.realestate.repository.WalletTransactionRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +22,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+// Razorpay
+import com.razorpay.Order;
+import com.razorpay.RazorpayClient;
+import com.razorpay.Utils;
+import org.json.JSONObject;
+
 @RestController
 @RequestMapping("/api/wallet")
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5175", "https://real-estate-alpha-sandy.vercel.app"})
@@ -29,6 +36,12 @@ public class WalletController {
     @Autowired private WalletRepository walletRepo;
     @Autowired private WalletTransactionRepository transactionRepo;
     @Autowired private UserRepository userRepo;
+
+    @Value("${razorpay.key.id:}")
+    private String razorpayKeyId;
+
+    @Value("${razorpay.key.secret:}")
+    private String razorpayKeySecret;
 
     // Get or create wallet for current user
     @GetMapping
@@ -55,6 +68,108 @@ public class WalletController {
         response.put("balance", wallet.getBalance());
         response.put("userId", user.getId());
         return ResponseEntity.ok(response);
+    }
+
+    // ---------- Razorpay Server Order/Verify for Wallet Top-up ----------
+    public static class CreateWalletOrderRequest {
+        public Integer amount; // INR
+        public String description;
+    }
+
+    @PostMapping("/pay/order")
+    @PreAuthorize("hasAnyRole('USER','ADMIN','AGENT')")
+    public ResponseEntity<?> createWalletOrder(@RequestBody CreateWalletOrderRequest req) {
+        try {
+            if (razorpayKeyId == null || razorpayKeyId.isEmpty() || razorpayKeySecret == null || razorpayKeySecret.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Razorpay keys not configured");
+            }
+            if (req.amount == null || req.amount <= 0) {
+                return ResponseEntity.badRequest().body("Amount must be positive");
+            }
+
+            int amountInPaise = req.amount * 100;
+            RazorpayClient client = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
+            JSONObject orderRequest = new JSONObject();
+            orderRequest.put("amount", amountInPaise);
+            orderRequest.put("currency", "INR");
+            orderRequest.put("payment_capture", 1);
+            orderRequest.put("receipt", "wallet_" + System.currentTimeMillis());
+
+            Order order = client.orders.create(orderRequest);
+
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("orderId", order.get("id"));
+            resp.put("amount", order.get("amount"));
+            resp.put("currency", order.get("currency"));
+            resp.put("keyId", razorpayKeyId);
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Order creation failed: " + e.getMessage());
+        }
+    }
+
+    public static class VerifyWalletRequest {
+        public Integer amount; // INR
+        public String description;
+        public String razorpay_order_id;
+        public String razorpay_payment_id;
+        public String razorpay_signature;
+    }
+
+    @PostMapping("/pay/verify")
+    @PreAuthorize("hasAnyRole('USER','ADMIN','AGENT')")
+    public ResponseEntity<?> verifyWalletPayment(@RequestBody VerifyWalletRequest req) {
+        try {
+            if (razorpayKeySecret == null || razorpayKeySecret.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Razorpay secret not configured");
+            }
+            if (req.amount == null || req.amount <= 0) {
+                return ResponseEntity.badRequest().body("Amount must be positive");
+            }
+
+            String payload = req.razorpay_order_id + '|' + req.razorpay_payment_id;
+            boolean isValid = Utils.verifySignature(payload, req.razorpay_signature, razorpayKeySecret);
+            if (!isValid) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
+            }
+
+            Optional<User> userOpt = getCurrentUser();
+            if (userOpt.isEmpty()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            User user = userOpt.get();
+
+            // Ensure wallet exists
+            Optional<Wallet> walletOpt = walletRepo.findByUser_Id(user.getId());
+            Wallet wallet = walletOpt.orElseGet(() -> {
+                Wallet w = new Wallet();
+                w.setUser(user);
+                w.setBalance(BigDecimal.ZERO);
+                return walletRepo.save(w);
+            });
+
+            BigDecimal amount = new BigDecimal(req.amount);
+
+            // Persist credit transaction with Razorpay payment id as reference
+            WalletTransaction txn = new WalletTransaction();
+            txn.setWallet(wallet);
+            txn.setType(WalletTransaction.TransactionType.CREDIT);
+            txn.setAmount(amount);
+            txn.setDescription(req.description != null ? req.description : "Wallet top-up via Razorpay");
+            txn.setReferenceId(req.razorpay_payment_id);
+            transactionRepo.save(txn);
+
+            // Update wallet balance
+            wallet.setBalance(wallet.getBalance().add(amount));
+            walletRepo.save(wallet);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("walletId", wallet.getId());
+            response.put("newBalance", wallet.getBalance());
+            response.put("transactionId", txn.getId());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Verification failed: " + e.getMessage());
+        }
     }
 
     // Get wallet transactions

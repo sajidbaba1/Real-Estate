@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Filter, MapPin, DollarSign, Home } from 'lucide-react';
 import PropertyCard from '../components/PropertyCard';
@@ -8,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -229,7 +231,7 @@ const HomePage: React.FC = () => {
                 <PropertyCard 
                   key={property.id} 
                   property={property} 
-                  onClick={() => window.location.hash = `#/properties/${property.id}`}
+                  onClick={() => navigate(`/properties/${property.id}`)}
                 />
               ))}
             </motion.div>
@@ -237,7 +239,7 @@ const HomePage: React.FC = () => {
           
           <div className="text-center mt-12">
             <button 
-              onClick={() => window.location.hash = '#/properties'}
+              onClick={() => navigate('/properties')}
               className="btn-primary inline-flex items-center"
             >
               View All Properties

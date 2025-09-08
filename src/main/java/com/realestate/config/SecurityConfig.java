@@ -38,10 +38,16 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/api/auth/**").permitAll()
+                // Allow SockJS/WebSocket handshake endpoints
+                .requestMatchers("/ws/**").permitAll()
                 // Public property endpoints
                 .requestMatchers("/api/properties/public/**").permitAll()
                 .requestMatchers("/api/properties/approved").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/properties/**").permitAll()
+                // Allow RAG ingestion endpoint to fetch business data without auth (server-to-server)
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/analytics/export/business-data").permitAll()
+                // Allow CORS preflight requests
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                 // Other endpoints require authentication
                 .requestMatchers("/api/users/profile").authenticated()
                 .anyRequest().authenticated()
@@ -54,9 +60,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
+        // Use origin patterns to support both localhost and 127.0.0.1 during development
+        configuration.setAllowedOriginPatterns(Arrays.asList(
             "http://localhost:5173",
             "http://localhost:5175",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5175",
             "https://real-estate-alpha-sandy.vercel.app"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

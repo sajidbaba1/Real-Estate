@@ -35,36 +35,36 @@ export const authService = {
 
   // Get current user
   getCurrentUser: async (): Promise<User> => {
-    const response = await authApi.get('/users/me');
+    const response = await authApi.get('/users/profile');
     return response.data;
   },
 
   // Update user profile
   updateProfile: async (userData: Partial<User>): Promise<User> => {
-    const response = await authApi.put('/users/me', userData);
+    const response = await authApi.put('/users/profile', userData);
     return response.data;
   },
 
   // Get user favorites
   getFavorites: async (): Promise<Property[]> => {
-    const response = await authApi.get('/users/me/favorites');
+    const response = await authApi.get('/users/favorites');
     return response.data;
   },
 
   // Add property to favorites
   addToFavorites: async (propertyId: number): Promise<void> => {
-    await authApi.post(`/users/me/favorites/${propertyId}`);
+    await authApi.post(`/users/favorites/${propertyId}`);
   },
 
   // Remove property from favorites
   removeFromFavorites: async (propertyId: number): Promise<void> => {
-    await authApi.delete(`/users/me/favorites/${propertyId}`);
+    await authApi.delete(`/users/favorites/${propertyId}`);
   },
 
   // Check if property is favorited
   isFavorited: async (propertyId: number): Promise<boolean> => {
-    const response = await authApi.get(`/users/me/favorites/${propertyId}`);
-    return response.data.favorited;
+    const response = await authApi.get(`/users/favorites/${propertyId}/check`);
+    return response.data.isFavorite;
   },
 
   // Logout (client-side only)

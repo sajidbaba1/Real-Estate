@@ -33,7 +33,7 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
 
     List<Property> findByLocation_IdAndApprovalStatus(Long locationId, Property.ApprovalStatus status);
 
-    @Query("SELECT p FROM Property p WHERE p.approvalStatus = com.realestate.entity.Property$ApprovalStatus.APPROVED")
+    @Query("SELECT p FROM Property p WHERE p.approvalStatus = 'APPROVED' OR p.approvalStatus IS NULL")
     List<Property> findAllApproved();
 
     @Query("SELECT p FROM Property p WHERE p.price BETWEEN :minPrice AND :maxPrice")

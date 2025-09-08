@@ -16,10 +16,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/properties")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5175", "https://real-estate-alpha-sandy.vercel.app"})
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5175", "http://127.0.0.1:5173", "http://127.0.0.1:5175", "https://real-estate-alpha-sandy.vercel.app"})
 public class PropertyController {
 
     @Autowired
@@ -40,6 +41,19 @@ public class PropertyController {
     public ResponseEntity<List<Property>> getApprovedProperties() {
         List<Property> properties = propertyRepository.findAllApproved();
         return ResponseEntity.ok(properties);
+    }
+
+    // Counts
+    @GetMapping("/count")
+    public ResponseEntity<Map<String, Long>> countAllProperties() {
+        long total = propertyRepository.count();
+        return ResponseEntity.ok(Map.of("total", total));
+    }
+
+    @GetMapping("/approved/count")
+    public ResponseEntity<Map<String, Long>> countApprovedProperties() {
+        long count = propertyRepository.findAllApproved().size();
+        return ResponseEntity.ok(Map.of("approved", count));
     }
 
     // Get property by ID (public access)
@@ -97,6 +111,9 @@ public class PropertyController {
             property.setSquareFeet(propertyDetails.getSquareFeet());
             property.setPropertyType(propertyDetails.getPropertyType());
             property.setStatus(propertyDetails.getStatus());
+            // listing and pricing details
+            property.setListingType(propertyDetails.getListingType());
+            property.setPriceType(propertyDetails.getPriceType());
             property.setImageUrl(propertyDetails.getImageUrl());
             property.setLatitude(propertyDetails.getLatitude());
             property.setLongitude(propertyDetails.getLongitude());
@@ -107,6 +124,24 @@ public class PropertyController {
         } else {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    // Assign current authenticated ADMIN/AGENT as owner of a property
+    @PatchMapping("/{id}/assign-owner")
+    @PreAuthorize("hasAnyRole('ADMIN','AGENT')")
+    public ResponseEntity<?> assignOwner(@PathVariable Long id) {
+        Optional<Property> optional = propertyRepository.findById(id);
+        if (optional.isEmpty()) return ResponseEntity.notFound().build();
+
+        Optional<User> currentUserOpt = getCurrentUser();
+        if (currentUserOpt.isEmpty()) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        User me = currentUserOpt.get();
+
+        // Only ADMIN/AGENT can call due to PreAuthorize, set owner to current user
+        Property p = optional.get();
+        p.setOwner(me);
+        propertyRepository.save(p);
+        return ResponseEntity.ok(p);
     }
 
     // Delete property

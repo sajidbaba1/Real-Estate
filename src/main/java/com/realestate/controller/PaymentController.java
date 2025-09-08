@@ -4,10 +4,10 @@ import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.Utils;
 import com.realestate.entity.Property;
-import com.realestate.entity.SaleInquiry;
+import com.realestate.entity.PropertyInquiry;
 import com.realestate.entity.User;
 import com.realestate.repository.PropertyRepository;
-import com.realestate.repository.SaleInquiryRepository;
+import com.realestate.repository.PropertyInquiryRepository;
 import com.realestate.repository.UserRepository;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,11 +32,11 @@ public class PaymentController {
     @Value("${razorpay.key.secret:}")
     private String razorpayKeySecret;
 
-    private final SaleInquiryRepository inquiryRepo;
+    private final PropertyInquiryRepository inquiryRepo;
     private final PropertyRepository propertyRepo;
     private final WalletController walletController;
 
-    public PaymentController(SaleInquiryRepository inquiryRepo, PropertyRepository propertyRepo, WalletController walletController) {
+    public PaymentController(PropertyInquiryRepository inquiryRepo, PropertyRepository propertyRepo, WalletController walletController) {
         this.inquiryRepo = inquiryRepo;
         this.propertyRepo = propertyRepo;
         this.walletController = walletController;
@@ -54,11 +54,11 @@ public class PaymentController {
             if (razorpayKeyId == null || razorpayKeyId.isEmpty() || razorpayKeySecret == null || razorpayKeySecret.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Razorpay keys not configured");
             }
-            Optional<SaleInquiry> inqOpt = inquiryRepo.findById(req.inquiryId);
+            Optional<PropertyInquiry> inqOpt = inquiryRepo.findById(req.inquiryId);
             if (inqOpt.isEmpty()) return ResponseEntity.notFound().build();
-            SaleInquiry inq = inqOpt.get();
-            if (inq.getDealStatus() != SaleInquiry.DealStatus.ACCEPTED) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Deal is not accepted yet");
+            PropertyInquiry inq = inqOpt.get();
+            if (inq.getStatus() != PropertyInquiry.InquiryStatus.AGREED) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Deal is not agreed yet");
             }
 
             int amountInInr = (req.amount != null && req.amount > 0) ? req.amount : 10000; // default token 10,000 INR
@@ -105,11 +105,10 @@ public class PaymentController {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
             }
 
-            Optional<SaleInquiry> inqOpt = inquiryRepo.findById(req.inquiryId);
+            Optional<PropertyInquiry> inqOpt = inquiryRepo.findById(req.inquiryId);
             if (inqOpt.isEmpty()) return ResponseEntity.notFound().build();
-            SaleInquiry inq = inqOpt.get();
-            inq.setDealStatus(SaleInquiry.DealStatus.BOOKED);
-            inq.setStatus(SaleInquiry.InquiryStatus.CLOSED);
+            PropertyInquiry inq = inqOpt.get();
+            inq.setStatus(PropertyInquiry.InquiryStatus.PURCHASED);
             inquiryRepo.save(inq);
 
             // Mark property SOLD
@@ -120,7 +119,7 @@ public class PaymentController {
             // Deduct token amount from customer's wallet (optional, if wallet used for record-keeping)
             try {
                 BigDecimal tokenAmount = new BigDecimal("10000"); // Default token amount (INR)
-                walletController.deductMoney(inq.getCustomer().getId(), tokenAmount,
+                walletController.deductMoney(inq.getClient().getId(), tokenAmount,
                         "Token payment for property booking - Inquiry #" + inq.getId(),
                         req.razorpay_payment_id);
             } catch (Exception ignored) {}
@@ -129,7 +128,7 @@ public class PaymentController {
             resp.put("status", "success");
             resp.put("inquiryId", inq.getId());
             resp.put("propertyId", property.getId());
-            resp.put("dealStatus", inq.getDealStatus().name());
+            resp.put("dealStatus", inq.getStatus().name());
             return ResponseEntity.ok(resp);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Verification failed: " + e.getMessage());

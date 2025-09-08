@@ -41,7 +41,30 @@ public class PgBooking {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private BookingStatus status = BookingStatus.ACTIVE;
+    private BookingStatus status = BookingStatus.PENDING_APPROVAL;
+
+    @Column(name = "approval_date")
+    private LocalDateTime approvalDate;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
+    // Late fee configuration (optional overrides)
+    @Column(name = "late_fee_rate", precision = 5, scale = 2)
+    private BigDecimal lateFeeRate; // percentage per month (e.g., 5.00 for 5%)
+
+    @Column(name = "grace_period_days")
+    private Integer gracePeriodDays; // days of grace before late fee applies
+
+    // Termination meta
+    @Column(name = "termination_reason")
+    private String terminationReason;
+
+    @Column(name = "termination_date")
+    private LocalDate terminationDate;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -54,9 +77,12 @@ public class PgBooking {
     private List<MonthlyPayment> monthlyPayments = new ArrayList<>();
 
     public enum BookingStatus {
-        ACTIVE,     // Currently occupied
-        COMPLETED,  // Lease ended normally
-        CANCELLED   // Cancelled/terminated early
+        PENDING_APPROVAL, // Waiting for owner approval
+        ACTIVE,           // Currently occupied
+        COMPLETED,        // Lease ended normally
+        CANCELLED,        // Cancelled/terminated early
+        REJECTED,         // Rejected by owner
+        TERMINATED        // Early termination
     }
 
     @PrePersist
@@ -89,10 +115,25 @@ public class PgBooking {
     public void setSecurityDeposit(BigDecimal securityDeposit) { this.securityDeposit = securityDeposit; }
     public BookingStatus getStatus() { return status; }
     public void setStatus(BookingStatus status) { this.status = status; }
+    public LocalDateTime getApprovalDate() { return approvalDate; }
+    public void setApprovalDate(LocalDateTime approvalDate) { this.approvalDate = approvalDate; }
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+    public String getCancellationReason() { return cancellationReason; }
+    public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public List<MonthlyPayment> getMonthlyPayments() { return monthlyPayments; }
     public void setMonthlyPayments(List<MonthlyPayment> monthlyPayments) { this.monthlyPayments = monthlyPayments; }
+    public BigDecimal getLateFeeRate() { return lateFeeRate; }
+    public void setLateFeeRate(BigDecimal lateFeeRate) { this.lateFeeRate = lateFeeRate; }
+    public Integer getGracePeriodDays() { return gracePeriodDays; }
+    public void setGracePeriodDays(Integer gracePeriodDays) { this.gracePeriodDays = gracePeriodDays; }
+    public String getTerminationReason() { return terminationReason; }
+    public void setTerminationReason(String terminationReason) { this.terminationReason = terminationReason; }
+    public LocalDate getTerminationDate() { return terminationDate; }
+    public void setTerminationDate(LocalDate terminationDate) { this.terminationDate = terminationDate; }
 }
+

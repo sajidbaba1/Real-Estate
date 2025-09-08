@@ -92,9 +92,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    console.log('Logging out and clearing all auth data');
     setUser(null);
     setToken(null);
     authService.logout();
+  };
+
+  // Debug function to check token validity
+  const debugToken = () => {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    console.log('Current auth state:', {
+      hasToken: !!token,
+      hasStoredToken: !!storedToken,
+      hasUser: !!user,
+      hasStoredUser: !!storedUser,
+      tokenLength: storedToken?.length,
+      isAuthenticated
+    });
+    if (storedToken) {
+      try {
+        const payload = JSON.parse(atob(storedToken.split('.')[1]));
+        const now = Date.now() / 1000;
+        console.log('Token payload:', {
+          exp: payload.exp,
+          iat: payload.iat,
+          sub: payload.sub,
+          isExpired: payload.exp < now,
+          expiresIn: Math.round(payload.exp - now) + 's'
+        });
+      } catch (e) {
+        console.log('Token decode error:', e);
+      }
+    }
   };
 
   const value: AuthContextType = {

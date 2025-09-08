@@ -37,6 +37,9 @@ public class MonthlyPayment {
     @Column(name = "payment_reference")
     private String paymentReference; // Razorpay payment ID or wallet transaction ID
 
+    @Column(name = "late_fee", precision = 12, scale = 2)
+    private BigDecimal lateFee;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -82,4 +85,6 @@ public class MonthlyPayment {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public BigDecimal getLateFee() { return lateFee; }
+    public void setLateFee(BigDecimal lateFee) { this.lateFee = lateFee; }
 }

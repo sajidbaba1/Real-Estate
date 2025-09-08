@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@googlemaps/react-wrapper": "^1.2.0",
+    "@stomp/stompjs": "^7.0.0",
     "@types/google.maps": "^3.58.1",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
@@ -19,7 +20,10 @@
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.1"
+    "react-router-dom": "^6.20.1",
+    "sockjs-client": "^1.6.1",
+    "echarts": "^5.5.0",
+    "echarts-for-react": "^3.0.2"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.10.0",

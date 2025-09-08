@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Trash2, Loader2, Home, BedSingle } from 'lucide-react';
+import { Trash2, Loader2, Home, BedSingle, Pencil, UserPlus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { propertyApi } from '../services/api';
 
 interface Property {
   id: number;
@@ -18,6 +19,7 @@ interface Property {
   status: string;
   imageUrl?: string;
   isPgListing?: boolean;
+  owner?: { id: number } | null;
 }
 
 const MyListingsPage: React.FC = () => {
@@ -123,18 +125,34 @@ const MyListingsPage: React.FC = () => {
                 <div className="text-xs text-gray-500 mt-2">{p.bedrooms} bd • {p.bathrooms} ba • {p.squareFeet} sqft</div>
                 <div className="mt-3 text-xs text-gray-500">Type: {p.propertyType} • Status: {p.status}</div>
                 <div className="mt-4 flex items-center justify-between">
-                  <a href={`/properties/${p.id}`} className="text-primary-600 hover:text-primary-800 font-medium">View</a>
-                  {/* UI guard: show Delete for ADMIN only (owner check enforced by backend) */}
-                  {user?.role === 'ADMIN' && (
-                    <button
-                      onClick={() => handleDelete(p.id)}
-                      disabled={deletingId === p.id}
-                      className="inline-flex items-center text-red-600 hover:text-red-800 disabled:opacity-50"
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      {deletingId === p.id ? 'Deleting...' : 'Delete'}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-4">
+                    <a href={`/properties/${p.id}`} className="text-primary-600 hover:text-primary-800 font-medium">View</a>
+                    {(user?.role === 'ADMIN' || user?.role === 'AGENT') && (
+                      <a
+                        href={`/edit-property/${p.id}`}
+                        className="inline-flex items-center text-gray-700 hover:text-gray-900"
+                        title="Edit"
+                      >
+                        <Pencil className="w-4 h-4 mr-1" /> Edit
+                      </a>
+                    )}
+                    {(user?.role === 'ADMIN' || user?.role === 'AGENT') && !p.owner && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await propertyApi.claimOwnership(p.id);
+                            await fetchMyListings();
+                            alert('Ownership claimed. You can now edit this property.');
+                          } catch (e) {
+                            alert('Failed to claim ownership');
+                          }
+                        }}
+                        className="inline-flex items-center text-blue-600 hover:text-blue-800"
+                      >
+                        <UserPlus className="w-4 h-4 mr-1" /> Claim
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {(user?.role === 'ADMIN' || user?.role === 'AGENT') && p.isPgListing && (
                   <div className="mt-3">

@@ -4,6 +4,7 @@ import { Property, PropertyStatus } from '../types/Property';
 import { MapPin, Bed, Bath, Square, Heart } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authApi';
+import { formatPriceINR } from '../utils/currency';
 
 interface PropertyCardProps {
   property: Property;
@@ -87,13 +88,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onClick }) => {
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
+  const formatPrice = (price: number) => formatPriceINR(price);
 
   return (
     <motion.div

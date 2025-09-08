@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, MapPin, Search, Target } from 'lucide-react';
 import { propertyApi } from '../services/api';
-import { Property, PropertyType, PropertyStatus } from '../types/Property';
+import { Property, PropertyType, PropertyStatus, ListingType, PriceType } from '../types/Property';
 import GoogleMap from '../components/GoogleMap';
 import { GeocodingService } from '../services/geocoding';
-import { sampleProperties } from '../data/sampleProperties';
+import { useAuth } from '../contexts/AuthContext';
 
 const AddPropertyPage: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
@@ -26,6 +27,8 @@ const AddPropertyPage: React.FC = () => {
     squareFeet: 0,
     propertyType: PropertyType.HOUSE,
     status: PropertyStatus.FOR_SALE,
+    listingType: ListingType.SALE,
+    priceType: PriceType.ONE_TIME,
     imageUrl: '',
     latitude: undefined,
     longitude: undefined,
@@ -46,6 +49,15 @@ const AddPropertyPage: React.FC = () => {
       setProperty({
         ...property,
         [name]: value === '' ? 0 : Number(value),
+      });
+    } else if (name === 'status') {
+      // When status changes, adjust listingType/priceType accordingly
+      const newStatus = value as PropertyStatus;
+      setProperty({
+        ...property,
+        status: newStatus,
+        listingType: newStatus === PropertyStatus.FOR_RENT ? ListingType.RENT : ListingType.SALE,
+        priceType: newStatus === PropertyStatus.FOR_RENT ? PriceType.MONTHLY : PriceType.ONE_TIME,
       });
     } else {
       setProperty({
@@ -186,31 +198,18 @@ const AddPropertyPage: React.FC = () => {
     if (!validateForm()) {
       return;
     }
+    if (!isAuthenticated) {
+      alert('Please log in to add a property.');
+      navigate('/login');
+      return;
+    }
     
     try {
       setLoading(true);
-      
-      // Static implementation - add to localStorage and sample data
-      const newProperty: Property = {
-        ...property,
-        id: Date.now(), // Simple ID generation for static implementation
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      
-      // Add to static sample data (for immediate display)
-      sampleProperties.push(newProperty);
-      
-      // Also save to localStorage for persistence
-      const existingProperties = JSON.parse(localStorage.getItem('userProperties') || '[]');
-      existingProperties.push(newProperty);
-      localStorage.setItem('userProperties', JSON.stringify(existingProperties));
-      
-      // TODO: Replace with API call when backend is ready
-      // await propertyApi.createProperty(property);
-      
+      // Persist to backend; backend will set the owner to the current user
+      const created = await propertyApi.createProperty(property);
       alert('Property added successfully!');
-      navigate('/properties');
+      navigate(`/properties/${created.id}`);
     } catch (error) {
       console.error('Error creating property:', error);
       alert('Failed to create property. Please try again.');

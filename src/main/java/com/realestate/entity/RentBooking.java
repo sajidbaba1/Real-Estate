@@ -41,7 +41,31 @@ public class RentBooking {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private BookingStatus status = BookingStatus.ACTIVE;
+    private BookingStatus status = BookingStatus.PENDING_APPROVAL;
+
+    @Column(name = "approval_date")
+    private LocalDateTime approvalDate;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
+    @Column(name = "termination_reason")
+    private String terminationReason;
+
+    @Column(name = "termination_date")
+    private LocalDate terminationDate;
+
+    @Column(name = "late_fee_rate", precision = 5, scale = 2)
+    private BigDecimal lateFeeRate = BigDecimal.valueOf(5.0); // 5% default
+
+    @Column(name = "grace_period_days")
+    private Integer gracePeriodDays = 3; // 3 days grace period
+
+    @Column(name = "auto_renewal")
+    private Boolean autoRenewal = false;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -54,9 +78,13 @@ public class RentBooking {
     private List<MonthlyPayment> monthlyPayments = new ArrayList<>();
 
     public enum BookingStatus {
-        ACTIVE,     // Currently rented
-        COMPLETED,  // Lease ended normally
-        CANCELLED   // Cancelled/terminated early
+        PENDING_APPROVAL,  // Waiting for owner approval
+        ACTIVE,           // Currently rented
+        COMPLETED,        // Lease ended normally
+        CANCELLED,        // Cancelled/terminated early
+        REJECTED,         // Rejected by owner
+        EXTENDED,         // Lease extended
+        TERMINATED        // Early termination
     }
 
     @PrePersist
@@ -95,4 +123,22 @@ public class RentBooking {
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public List<MonthlyPayment> getMonthlyPayments() { return monthlyPayments; }
     public void setMonthlyPayments(List<MonthlyPayment> monthlyPayments) { this.monthlyPayments = monthlyPayments; }
+    
+    // New getters and setters for advanced features
+    public LocalDateTime getApprovalDate() { return approvalDate; }
+    public void setApprovalDate(LocalDateTime approvalDate) { this.approvalDate = approvalDate; }
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+    public String getCancellationReason() { return cancellationReason; }
+    public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
+    public BigDecimal getLateFeeRate() { return lateFeeRate; }
+    public void setLateFeeRate(BigDecimal lateFeeRate) { this.lateFeeRate = lateFeeRate; }
+    public Integer getGracePeriodDays() { return gracePeriodDays; }
+    public void setGracePeriodDays(Integer gracePeriodDays) { this.gracePeriodDays = gracePeriodDays; }
+    public Boolean getAutoRenewal() { return autoRenewal; }
+    public void setAutoRenewal(Boolean autoRenewal) { this.autoRenewal = autoRenewal; }
+    public String getTerminationReason() { return terminationReason; }
+    public void setTerminationReason(String terminationReason) { this.terminationReason = terminationReason; }
+    public LocalDate getTerminationDate() { return terminationDate; }
+    public void setTerminationDate(LocalDate terminationDate) { this.terminationDate = terminationDate; }
 }
