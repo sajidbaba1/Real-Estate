@@ -40,6 +40,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     };
 
+  // Send OTP to email
+  const otpSend = async (email: string) => {
+    try {
+      const res = await authService.sendOtp(email);
+      return res;
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      throw error;
+    }
+  };
+
+  // Login with OTP
+  const otpLogin = async (email: string, otpCode: string) => {
+    try {
+      const response = await authService.loginWithOtp(email, otpCode);
+
+      setToken(response.token);
+      const userData: User = {
+        id: response.id,
+        email: response.email,
+        firstName: response.firstName,
+        lastName: response.lastName,
+        role: response.role as 'USER' | 'AGENT' | 'ADMIN',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      setUser(userData);
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('OTP login error:', error);
+      throw error;
+    }
+  };
+
     initializeAuth();
   }, []);
 
@@ -135,6 +171,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     isAuthenticated: !!user,
     loading,
+    otpSend,
+    otpLogin,
   };
 
   return (

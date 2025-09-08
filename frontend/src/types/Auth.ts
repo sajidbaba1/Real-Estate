@@ -40,4 +40,7 @@ export interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   loading: boolean;
+  // OTP-based auth
+  otpSend?: (email: string) => Promise<{ success: boolean; message: string; expiryMinutes?: number }>;
+  otpLogin?: (email: string, otpCode: string) => Promise<void>;
 }

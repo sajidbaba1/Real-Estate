@@ -6,6 +6,7 @@ import com.realestate.dto.RegisterRequest;
 import com.realestate.entity.User;
 import com.realestate.service.UserService;
 import com.realestate.util.JwtUtil;
+import com.realestate.service.OtpService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,9 @@ public class AuthController {
     @Autowired
     private JwtUtil jwtUtil;
     
+    @Autowired
+    private OtpService otpService;
+    
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         try {
@@ -45,6 +49,27 @@ public class AuthController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Invalid email or password");
         }
+    
+    /**
+     * Login with OTP: expects { email, otpCode }
+     */
+    @PostMapping("/login-otp")
+    public ResponseEntity<?> loginWithOtp(@RequestBody java.util.Map<String, String> body) {
+        String email = body.get("email");
+        String otpCode = body.get("otpCode");
+        if (email == null || otpCode == null || !otpCode.matches("\\d{6}")) {
+            return ResponseEntity.badRequest().body("Email and 6-digit otpCode are required");
+        }
+        boolean ok = otpService.verifyOtp(email.trim().toLowerCase(), otpCode.trim());
+        if (!ok) {
+            return ResponseEntity.badRequest().body("Invalid or expired OTP");
+        }
+        User user = userService.findByEmail(email.trim().toLowerCase()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body("User not found");
+        }
+        String token = jwtUtil.generateToken(user);
+        return ResponseEntity.ok(new AuthResponse(token, user));
     }
     
     @PostMapping("/register")

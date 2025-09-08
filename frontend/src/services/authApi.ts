@@ -2,7 +2,7 @@ import axios from 'axios';
 import { LoginRequest, RegisterRequest, AuthResponse, User } from '../types/Auth';
 import { Property } from '../types/Property';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8888/api';
 
 const authApi = axios.create({
   baseURL: API_BASE_URL,
@@ -30,6 +30,18 @@ export const authService = {
   // Register user
   register: async (userData: RegisterRequest): Promise<AuthResponse> => {
     const response = await authApi.post('/auth/register', userData);
+    return response.data;
+  },
+  
+  // Send OTP to email
+  sendOtp: async (email: string): Promise<{ success: boolean; message: string; expiryMinutes?: number }> => {
+    const response = await authApi.post('/auth/otp/send', { email });
+    return response.data;
+  },
+
+  // Login with OTP
+  loginWithOtp: async (email: string, otpCode: string): Promise<AuthResponse> => {
+    const response = await authApi.post('/auth/login-otp', { email, otpCode });
     return response.data;
   },
 
